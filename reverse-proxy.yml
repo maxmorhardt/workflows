@@ -1,0 +1,78 @@
+# SSH into an instance and setup reverse proxy for api and ui routing
+name: Setup Reverse Proxy
+
+on:
+  workflow_dispatch:
+    inputs:
+      # SSH details
+      host:
+        description: 'IP of instance'
+        required: true
+        type: string
+      username:
+        description: 'Username for instance'
+        required: true
+        type: string
+      ssh_key:
+        description: 'SSH key for instance'
+        required: true
+        type: string
+
+      # nginx details
+      api-upstream-name:
+        description: 'Name of your API upstream for nginxn (ex. app-name-api)'
+        required: true
+        type: string
+      api-upstream-port:
+        description: 'Port of your API upstream for nginx (ex. 8080)'
+        required: true
+        type: string
+      api-domain-name:
+        description: 'Domain name for your api not including http(s) (ex. api.app-name.com)'
+        required: true
+        type: string
+      ui-upstream-name:
+        description: 'Name of your UI upstream for nginx (ex. app-name-ui)'
+        required: true
+        type: string
+      ui-upstream-port:
+        description: 'Port of your UI upstream for nginx (ex. 4200)'
+        required: true
+        type: string
+      ui-domain-name:
+        description: 'Domain name for your ui not including http(s) (ex. app-name.com)'
+        required: true
+        type: string
+
+# Need inputs in environment to use with ssh appleboy
+env:
+  API_UPSTREAM_NAME: ${{ inputs.api-upstream-name }}
+  API_UPSTREAM_PORT: ${{ inputs.api-upstream-port }}
+  API_DOMAIN_NAME: ${{ inputs .api-domain-name }}
+  UI_UPSTREAM_NAME: ${{ inputs.ui-upstream-name }}
+  UI_UPSTREAM_PORT: ${{ inputs.ui-upstream-port }}
+  UI_DOMAIN_NAME: ${{ inputs.ui-domain-name }}
+  
+jobs:
+  setup-reverse-proxy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+        
+    - name: SSH into VM and setup nginx reverse proxy
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ inputs.host }}
+        username: ${{ inputs.username }}
+        key: ${{ inputs.ssh_key }}
+        envs: API_UPSTREAM_NAME, API_UPSTREAM_PORT, API_DOMAIN_NAME, UI_UPSTREAM_NAME, UI_UPSTREAM_PORT, UI_DOMAIN_NAME
+        script: |
+          sudo apt-get update
+          sudo apt-get install nginx
+          sudo unlink /etc/nginx/sites-enabled/default
+          sudo touch /etc/nginx/sites-available/reverse-proxy.conf
+          sudo echo "upstream $API_UPSTREAM_NAME {\n    server 127.0.0.1:$API_UPSTREAM_PORT;\n}\n\nupstream $UI_UPSTREAM_NAME {\n    server 127.0.0.1:$UI_UPSTREAM_PORT;\n}\n\nserver {\n        listen 80;\n        server_name $API_DOMAIN_NAME www.$API_DOMAIN_NAME;\n\n        location / {\n            proxy_pass         http://$API_UPSTREAM_NAME;\n            proxy_redirect     off;\n            proxy_set_header   Host $host;\n            proxy_set_header   X-Real-IP $remote_addr;\n            proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;\n            proxy_set_header   X-Forwarded-Host $server_name;\n\n        }\n}\n\nserver {\n        listen 80;\n        server_name $UI_DOMAIN_NAME www.$UI_DOMAIN_NAME;\n\n        location / {\n            proxy_pass         http://$UI_UPSTREAM_NAME;\n            proxy_redirect     off;\n            proxy_set_header   Host $host;\n            proxy_set_header   X-Real-IP $remote_addr;\n            proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;\n            proxy_set_header   X-Forwarded-Host $server_name;\n\n        }\n}" > /etc/nginx/sites-available/reverse-proxy.conf
+          sudo ln -sf /etc/nginx/sites-available/reverse-proxy.conf /etc/nginx/sites-enabled/reverse-proxy.conf
+          sudo service nginx configtest
+          sudo service nginx restart

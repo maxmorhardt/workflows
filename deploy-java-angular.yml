@@ -1,0 +1,126 @@
+# Template of cloud deployment for an api and ui within 1 instance. Example uses Azure and a staging environment
+name: Deployment to cloud
+
+on:
+  push:
+    branches: [ 'develop' ]
+    
+env:
+  ENVIRONMENT: staging
+  VERSION: 1.0.0-STAGING
+  BACKEND_NAME: api
+  FRONTEND_NAME: ui
+  DB_USERNAME: ${{ secrets.DB_USERNAME }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  JWT_SIGNING_KEY: ${{ secrets.JWT_SIGNING_KEY }}
+  DOCKER_REPO_PATH: ${{ secrets.DOCKER_USERNAME }}/
+  HOST: ${{ secrets.AZURE_STAGING_HOST }}
+  VM_USERNAME: ${{ secrets.AZURE_USERNAME }}
+  SSH_KEY: ${{ secrets.AZURE_STAGING_SSH_KEY }}
+  
+jobs:
+  # Run tests and package java api
+  backend-upload-artifact:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Java setup
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'corretto'
+
+    - run: mvn -f ${{ env.BACKEND_NAME }}/pom.xml versions:set -DnewVersion=${{ env.VERSION }}
+    - run: mvn -f ${{ env.BACKEND_NAME }}/pom.xml clean install
+    - run: mkdir ${{ env.ENVIRONMENT }} && cp ${{ env.BACKEND_NAME }}/target/*.jar ${{ env.ENVIRONMENT }}
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.BACKEND_NAME }}-${{ env.VERSION }}
+        path: ${{ env.ENVIRONMENT }}
+  
+  # Run tests and package angular ui
+  frontend-upload-artifact:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+
+    - run: cd ${{ env.FRONTEND_NAME }} && npm version ${{ env.VERSION }}
+    - run: cd ${{ env.FRONTEND_NAME }} && npm install
+    - run: cd ${{ env.FRONTEND_NAME }} && npm run test
+    - run: cd ${{ env.FRONTEND_NAME }} && npm run build-${{ env.ENVIRONMENT }}
+    
+    - uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.FRONTEND_NAME }}-${{ env.VERSION }}
+        path: ${{ env.FRONTEND_NAME }}/dist
+  
+  # Use docker compose to push both images to DockerHub
+  push-to-dockerhub:
+    runs-on: ubuntu-latest
+    needs: [backend-upload-artifact, frontend-upload-artifact]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - run: mkdir ${{ env.BACKEND_NAME }}/target
+    - run: mkdir ${{ env.FRONTEND_NAME }}/dist
+    
+    - name: Download backend jar artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.BACKEND_NAME }}-${{ env.VERSION }}
+        path: ${{ env.BACKEND_NAME }}/target
+
+    - name: Download frontend dist
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.FRONTEND_NAME }}-${{ env.VERSION }}
+        path: ${{ env.FRONTEND_NAME }}/dist
+      
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - run: docker compose build
+    - run: docker compose push
+  
+  # Copy compose file, remove old images/container, start new containers
+  deploy:
+    runs-on: ubuntu-latest
+    needs: push-to-dockerhub
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Copy compose file to VM
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ env.HOST }}
+        username: ${{ env.VM_USERNAME }}
+        key: ${{ env.SSH_KEY }}
+        source: "./compose.yaml"
+        target: lock-pass/
+        
+    - name: Pull and run docker images in VM   
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ env.HOST }}
+        username: ${{ env.VM_USERNAME }}
+        key: ${{ env.SSH_KEY }}
+        envs: ENVIRONMENT, VERSION, DB_USERNAME, DB_PASSWORD, JWT_SIGNING_KEY, DOCKER_REPO_PATH
+        script: |
+          cd lock-pass
+          sudo -E docker compose rm -v -s -f
+          sudo docker images -aq | sudo xargs docker rmi -f || true
+          sudo -E docker compose pull
+          sudo -E docker compose up -d
