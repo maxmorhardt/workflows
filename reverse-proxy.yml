@@ -63,9 +63,9 @@ jobs:
     - name: SSH into VM and setup nginx reverse proxy
       uses: appleboy/ssh-action@v1.0.0
       with:
-        host: ${{ inputs.host }}
-        username: ${{ inputs.username }}
-        key: ${{ inputs.ssh_key }}
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
         envs: API_UPSTREAM_NAME, API_UPSTREAM_PORT, API_DOMAIN_NAME, UI_UPSTREAM_NAME, UI_UPSTREAM_PORT, UI_DOMAIN_NAME
         script: |
           sudo apt-get update
