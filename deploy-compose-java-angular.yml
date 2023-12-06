@@ -1,25 +1,20 @@
-# Template of cloud deployment for an api and ui within 1 instance. Example uses Azure and a staging environment
-name: Deployment to cloud
+name: Docker Compose Angular Java Deployment
 
 on:
   push:
-    branches: [ 'develop' ]
+    branches: [ 'main' ]
     
 env:
-  ENVIRONMENT: staging
-  VERSION: 1.0.0-STAGING
-  BACKEND_NAME: api
-  FRONTEND_NAME: ui
+  ENVIRONMENT: production
+  VERSION: 1.0.0
+  BACKEND_NAME: lock-pass-api
+  FRONTEND_NAME: lock-pass-ui
   DB_USERNAME: ${{ secrets.DB_USERNAME }}
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
   JWT_SIGNING_KEY: ${{ secrets.JWT_SIGNING_KEY }}
   DOCKER_REPO_PATH: ${{ secrets.DOCKER_USERNAME }}/
-  HOST: ${{ secrets.AZURE_STAGING_HOST }}
-  VM_USERNAME: ${{ secrets.AZURE_USERNAME }}
-  SSH_KEY: ${{ secrets.AZURE_STAGING_SSH_KEY }}
   
 jobs:
-  # Run tests and package java api
   backend-upload-artifact:
     runs-on: ubuntu-latest
     steps:
@@ -31,7 +26,7 @@ jobs:
       with:
         java-version: '17'
         distribution: 'corretto'
-
+        
     - run: mvn -f ${{ env.BACKEND_NAME }}/pom.xml versions:set -DnewVersion=${{ env.VERSION }}
     - run: mvn -f ${{ env.BACKEND_NAME }}/pom.xml clean install
     - run: mkdir ${{ env.ENVIRONMENT }} && cp ${{ env.BACKEND_NAME }}/target/*.jar ${{ env.ENVIRONMENT }}
@@ -39,8 +34,7 @@ jobs:
       with:
         name: ${{ env.BACKEND_NAME }}-${{ env.VERSION }}
         path: ${{ env.ENVIRONMENT }}
-  
-  # Run tests and package angular ui
+        
   frontend-upload-artifact:
     runs-on: ubuntu-latest
     steps:
@@ -61,8 +55,7 @@ jobs:
       with:
         name: ${{ env.FRONTEND_NAME }}-${{ env.VERSION }}
         path: ${{ env.FRONTEND_NAME }}/dist
-  
-  # Use docker compose to push both images to DockerHub
+      
   push-to-dockerhub:
     runs-on: ubuntu-latest
     needs: [backend-upload-artifact, frontend-upload-artifact]
@@ -93,8 +86,7 @@ jobs:
 
     - run: docker compose build
     - run: docker compose push
-  
-  # Copy compose file, remove old images/container, start new containers
+        
   deploy:
     runs-on: ubuntu-latest
     needs: push-to-dockerhub
@@ -105,18 +97,18 @@ jobs:
     - name: Copy compose file to VM
       uses: appleboy/scp-action@v0.1.4
       with:
-        host: ${{ env.HOST }}
-        username: ${{ env.VM_USERNAME }}
-        key: ${{ env.SSH_KEY }}
+        host: ${{ secrets.HOST_IP }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
         source: "./compose.yaml"
         target: lock-pass/
         
     - name: Pull and run docker images in VM   
       uses: appleboy/ssh-action@v1.0.0
       with:
-        host: ${{ env.HOST }}
-        username: ${{ env.VM_USERNAME }}
-        key: ${{ env.SSH_KEY }}
+        host: ${{ secrets.HOST_IP }}
+        username: ${{ secrets.SSH_USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
         envs: ENVIRONMENT, VERSION, DB_USERNAME, DB_PASSWORD, JWT_SIGNING_KEY, DOCKER_REPO_PATH
         script: |
           cd lock-pass

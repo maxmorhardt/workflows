@@ -1,26 +1,11 @@
-# SSH into an instance and setup reverse proxy for api and ui routing
 name: Setup Reverse Proxy
 
 on:
   workflow_dispatch:
     inputs:
-      # SSH details
-      host:
-        description: 'IP of instance'
-        required: true
-        type: string
-      username:
-        description: 'Username for instance'
-        required: true
-        type: string
-      ssh_key:
-        description: 'SSH key for instance'
-        required: true
-        type: string
-
       # nginx details
       api-upstream-name:
-        description: 'Name of your API upstream for nginxn (ex. app-name-api)'
+        description: 'Name of your API upstream for nginx (ex. app-name-api)'
         required: true
         type: string
       api-upstream-port:
@@ -51,9 +36,10 @@ env:
   UI_UPSTREAM_NAME: ${{ inputs.ui-upstream-name }}
   UI_UPSTREAM_PORT: ${{ inputs.ui-upstream-port }}
   UI_DOMAIN_NAME: ${{ inputs.ui-domain-name }}
-  HOST: ${{ secrets.YOUR_HOST_IP }}
-  USERNAME: ${{ secrets.YOUR_INSTANCE_USERNAME }}
-  SSH_KEY: ${{ secrets.YOUR_SSH_KEY }}
+  # secrets need to be added to repo
+  HOST_IP: ${{ secrets.HOST_IP }}
+  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+  SSH_KEY: ${{ secrets.SSH_KEY }}
   
 jobs:
   setup-reverse-proxy:
@@ -65,16 +51,18 @@ jobs:
     - name: SSH into VM and setup nginx reverse proxy
       uses: appleboy/ssh-action@v1.0.0
       with:
-        host: ${{ env.HOST }}
-        username: ${{ env.USERNAME }}
+        host: ${{ env.HOST_IP }}
+        username: ${{ env.SSH_USERNAME }}
         key: ${{ env.SSH_KEY }}
         envs: API_UPSTREAM_NAME, API_UPSTREAM_PORT, API_DOMAIN_NAME, UI_UPSTREAM_NAME, UI_UPSTREAM_PORT, UI_DOMAIN_NAME
+        # man-db is removed due to 2.9.4-2 infinite processing triggers bug
         script: |
-          sudo apt-get update
-          sudo apt-get install nginx
+          sudo apt-get remove -y --purge man-db
+          sudo apt -y update
+          sudo apt -y install nginx
           sudo unlink /etc/nginx/sites-enabled/default
           sudo touch /etc/nginx/sites-available/reverse-proxy.conf
-          sudo echo "upstream $API_UPSTREAM_NAME {\n    server 127.0.0.1:$API_UPSTREAM_PORT;\n}\n\nupstream $UI_UPSTREAM_NAME {\n    server 127.0.0.1:$UI_UPSTREAM_PORT;\n}\n\nserver {\n        listen 80;\n        server_name $API_DOMAIN_NAME www.$API_DOMAIN_NAME;\n\n        location / {\n            proxy_pass         http://$API_UPSTREAM_NAME;\n            proxy_redirect     off;\n            proxy_set_header   Host $host;\n            proxy_set_header   X-Real-IP $remote_addr;\n            proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;\n            proxy_set_header   X-Forwarded-Host $server_name;\n\n        }\n}\n\nserver {\n        listen 80;\n        server_name $UI_DOMAIN_NAME www.$UI_DOMAIN_NAME;\n\n        location / {\n            proxy_pass         http://$UI_UPSTREAM_NAME;\n            proxy_redirect     off;\n            proxy_set_header   Host $host;\n            proxy_set_header   X-Real-IP $remote_addr;\n            proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;\n            proxy_set_header   X-Forwarded-Host $server_name;\n\n        }\n}" > /etc/nginx/sites-available/reverse-proxy.conf
+          sudo printf "upstream $API_UPSTREAM_NAME {\n    server 127.0.0.1:$API_UPSTREAM_PORT;\n}\n\nupstream $UI_UPSTREAM_NAME {\n    server 127.0.0.1:$UI_UPSTREAM_PORT;\n}\n\nserver {\n        listen 80;\n        server_name $API_DOMAIN_NAME www.$API_DOMAIN_NAME;\n\n        location / {\n            proxy_pass         http://$API_UPSTREAM_NAME;\n            proxy_redirect     off;\n            proxy_set_header   Host \$host;\n            proxy_set_header   X-Real-IP \$remote_addr;\n            proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;\n            proxy_set_header   X-Forwarded-Host \$server_name;\n\n        }\n}\n\nserver {\n        listen 80;\n        server_name $UI_DOMAIN_NAME www.$UI_DOMAIN_NAME;\n\n        location / {\n            proxy_pass         http://$UI_UPSTREAM_NAME;\n            proxy_redirect     off;\n            proxy_set_header   Host \$host;\n            proxy_set_header   X-Real-IP \$remote_addr;\n            proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;\n            proxy_set_header   X-Forwarded-Host \$server_name;\n\n        }\n}" | sudo tee /etc/nginx/sites-available/reverse-proxy.conf
           sudo ln -sf /etc/nginx/sites-available/reverse-proxy.conf /etc/nginx/sites-enabled/reverse-proxy.conf
           sudo service nginx configtest
           sudo service nginx restart
