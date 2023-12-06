@@ -1,0 +1,47 @@
+name: Install Certificates
+
+# NOTE: at this point DNS should be configured to the vm instance external ip
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 'Email for certbot'
+        required: true
+        type: string
+      api-url:
+        description: 'API domain WITHOUT www or http(s)://'
+        required: true
+        type: string
+      ui-url:
+        description: 'UI domain WITHOUT www or http(s)://'
+        required: true
+        type: string
+
+env:
+  HOST_IP: ${{ secrets.HOST_IP }}
+  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+  SSH_KEY: ${{ secrets.SSH_KEY }}
+  EMAIL: ${{ inputs.email }}
+  API_DOMAIN: ${{ inputs.api-url }}
+  UI_DOMAIN: ${{ inputs.ui-url }}
+  
+jobs:
+  setup-reverse-proxy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+        
+    - name: SSH into VM and setup nginx reverse proxy
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ env.HOST_IP }}
+        username: ${{ env.SSH_USERNAME }}
+        key: ${{ env.SSH_KEY }}
+        envs: EMAIL, API_DOMAIN, UI_DOMAIN
+        script: |
+          sudo apt -y update
+          sudo apt -y install snapd
+          sudo snap install --classic certbot
+          sudo ln -s /snap/bin/certbot /usr/bin/certbot
+          sudo certbot --nginx --non-interactive --agree-tos -m $EMAIL -d $API_DOMAIN -d www.$API_DOMAIN -d $UI_DOMAIN -d www.$UI_DOMAIN
