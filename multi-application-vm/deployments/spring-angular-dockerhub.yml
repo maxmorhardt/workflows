@@ -11,7 +11,6 @@ env:
   FRONTEND_NAME: lock-pass-ui
   DB_USERNAME: ${{ secrets.DB_USERNAME }}
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-  JWT_SIGNING_KEY: ${{ secrets.JWT_SIGNING_KEY }}
   DOCKER_REPO_PATH: ${{ secrets.DOCKER_USERNAME }}/
   
 jobs:
@@ -109,7 +108,7 @@ jobs:
         host: ${{ secrets.HOST_IP }}
         username: ${{ secrets.SSH_USERNAME }}
         key: ${{ secrets.SSH_KEY }}
-        envs: ENVIRONMENT, VERSION, DB_USERNAME, DB_PASSWORD, JWT_SIGNING_KEY, DOCKER_REPO_PATH
+        envs: ENVIRONMENT, VERSION, DB_USERNAME, DB_PASSWORD, DOCKER_REPO_PATH
         script: |
           cd lock-pass
           sudo -E docker compose rm -v -s -f

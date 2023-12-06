@@ -55,7 +55,6 @@ jobs:
         username: ${{ env.SSH_USERNAME }}
         key: ${{ env.SSH_KEY }}
         envs: API_UPSTREAM_NAME, API_UPSTREAM_PORT, API_DOMAIN_NAME, UI_UPSTREAM_NAME, UI_UPSTREAM_PORT, UI_DOMAIN_NAME
-        # man-db is removed due to 2.9.4-2 infinite processing triggers bug
         script: |
           sudo apt-get remove -y --purge man-db
           sudo apt -y update

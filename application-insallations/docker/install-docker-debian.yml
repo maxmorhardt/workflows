@@ -1,4 +1,4 @@
-name: Install Docker
+name: Install Docker on Debian VM (GCP)
 
 on:
   workflow_dispatch:
