@@ -1,0 +1,38 @@
+name: Install Docker
+
+on:
+  workflow_dispatch:
+
+env:
+  # secrets need to be added to repo
+  HOST_IP: ${{ secrets.HOST_IP }}
+  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+  SSH_KEY: ${{ secrets.SSH_KEY }}
+  
+jobs:
+  setup-reverse-proxy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+        
+    - name: SSH into VM and setup nginx reverse proxy
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ env.HOST_IP }}
+        username: ${{ env.SSH_USERNAME }}
+        key: ${{ env.SSH_KEY }}
+        script: |
+          sudo apt-get remove -y --purge man-db
+          sudo apt -y update
+          for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get -y remove $pkg; done
+          sudo apt-get -y install ca-certificates curl gnupg
+          sudo install -m 0755 -d /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          sudo chmod a+r /etc/apt/keyrings/docker.gpg
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+            $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get -y update
+          sudo apt-get -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
