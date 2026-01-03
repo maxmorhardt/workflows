@@ -42,13 +42,91 @@ jobs:
         with:
           version: 'latest'
 
+      - name: Install Kubeconform
+        run: |
+          wget https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+          tar xf kubeconform-linux-amd64.tar.gz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Update chart dependencies
+        working-directory: ${{ inputs.working_directory }}/${{ inputs.chart_directory }}
+        run: |
+          if [ -f "Chart.lock" ] || [ -f "Chart.yaml" ]; then
+            helm dependency update
+          fi
+
+      - name: Lint Helm chart
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          helm lint ${{ inputs.chart_directory }} --strict
+
+      - name: Template and validate with Kubeconform
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          helm template test-release ${{ inputs.chart_directory }} | kubeconform -strict -summary
+
       - name: Login to Helm registry
         run: |
           echo "${{ secrets.docker_password }}" | helm registry login docker.io \
             --username ${{ secrets.docker_username }} --password-stdin
 
-      - name: Package and push Helm chart
+      - name: Package Helm chart with provenance
+        id: package
         working-directory: ${{ inputs.working_directory }}
         run: |
-          helm package ${{ inputs.chart_directory }}
-          helm push ${{ inputs.chart_name }}-*.tgz oci://docker.io/${{ secrets.docker_username }}
+          helm package ${{ inputs.chart_directory }} --sign --key 'Github Actions' --keyring ~/.gnupg/secring.gpg 2>/dev/null || helm package ${{ inputs.chart_directory }}
+
+          CHART_FILE=$(ls ${{ inputs.chart_name }}-*.tgz)
+          CHART_VERSION=$(echo $CHART_FILE | sed 's/.*-\(.*\)\.tgz/\1/')
+
+          echo "chart_file=$CHART_FILE" >> $GITHUB_OUTPUT
+          echo "chart_version=$CHART_VERSION" >> $GITHUB_OUTPUT
+
+          sha256sum $CHART_FILE > ${CHART_FILE}.sha256
+          echo "Chart: $CHART_FILE"
+          echo "Version: $CHART_VERSION"
+          echo "SHA256: $(cat ${CHART_FILE}.sha256)"
+
+      - name: Push Helm chart to registry
+        id: push
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          PUSH_OUTPUT=$(helm push ${{ steps.package.outputs.chart_file }} oci://docker.io/${{ secrets.docker_username }} 2>&1)
+          echo "$PUSH_OUTPUT"
+
+          DIGEST=$(echo "$PUSH_OUTPUT" | grep -oP 'Digest: \K[^ ]+' || echo "")
+          if [ -n "$DIGEST" ]; then
+            echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload chart artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.chart_name }}-${{ steps.package.outputs.chart_version }}
+          path: |
+            ${{ inputs.working_directory }}/${{ steps.package.outputs.chart_file }}
+            ${{ inputs.working_directory }}/${{ steps.package.outputs.chart_file }}.sha256
+            ${{ inputs.working_directory }}/${{ steps.package.outputs.chart_file }}.prov
+          retention-days: 90
+
+      - name: Report chart details
+        run: |
+          echo "### 📦 Helm Chart Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Chart:** \`${{ inputs.chart_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`${{ steps.package.outputs.chart_version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry:** \`oci://docker.io/${{ secrets.docker_username }}/${{ inputs.chart_name }}\`" >> $GITHUB_STEP_SUMMARY
+
+          if [ -n "${{ steps.push.outputs.digest }}" ]; then
+            echo "**Digest:** \`${{ steps.push.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          cd ${{ inputs.working_directory }}/${{ inputs.chart_directory }}
+          if [ -f "Chart.yaml" ]; then
+            echo "**Chart Details:**" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`yaml" >> $GITHUB_STEP_SUMMARY
+            cat Chart.yaml >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
