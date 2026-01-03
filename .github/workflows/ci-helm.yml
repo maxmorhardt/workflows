@@ -1,0 +1,53 @@
+name: Helm CI
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: 'Repository to checkout'
+        required: true
+        type: string
+      chart_directory:
+        description: 'Chart directory name to package'
+        required: true
+        type: string
+      chart_name:
+        description: 'Helm chart name'
+        required: true
+        type: string
+      working_directory:
+        description: 'Working directory for helm package command'
+        required: false
+        type: string
+        default: 'charts'
+    secrets:
+      docker_username:
+        required: true
+      docker_password:
+        required: true
+
+jobs:
+  helm:
+    name: Package and Push Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repository }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Login to Helm registry
+        run: |
+          echo "${{ secrets.docker_password }}" | helm registry login docker.io \
+            --username ${{ secrets.docker_username }} --password-stdin
+
+      - name: Package and push Helm chart
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          helm package ${{ inputs.chart_directory }}
+          helm push ${{ inputs.chart_name }}-*.tgz oci://docker.io/${{ secrets.docker_username }}

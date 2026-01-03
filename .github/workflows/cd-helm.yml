@@ -1,0 +1,104 @@
+name: Helm Deploy v2
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: 'Git repository to checkout'
+        required: true
+        type: string
+      release_name:
+        description: 'Helm release name'
+        required: true
+        type: string
+      namespace:
+        description: 'Kubernetes namespace'
+        required: true
+        type: string
+      chart:
+        description: 'Chart reference'
+        required: true
+        type: string
+      chart_version:
+        description: 'Chart version to deploy'
+        required: false
+        type: string
+        default: ''
+      values_file:
+        description: 'Path to values file (relative to repo root)'
+        required: false
+        type: string
+        default: ''
+      helm_repo_name:
+        description: 'Helm repo name (only for traditional repos, not OCI)'
+        required: false
+        type: string
+        default: ''
+      helm_repo_url:
+        description: 'Helm repo URL (only for traditional repos, not OCI)'
+        required: false
+        type: string
+        default: ''
+      timeout:
+        description: 'Helm operation timeout'
+        required: false
+        type: string
+        default: '5m'
+    secrets:
+      kube_config:
+        required: true
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.release_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repository }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.kube_config }}" > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Add Helm repository
+        if: ${{ inputs.helm_repo_name != '' && inputs.helm_repo_url != '' }}
+        run: |
+          helm repo add ${{ inputs.helm_repo_name }} ${{ inputs.helm_repo_url }}
+          helm repo update
+
+      - name: Deploy with Helm
+        run: |
+          echo "Deploying ${{ inputs.release_name }} to namespace ${{ inputs.namespace }}"
+
+          HELM_CMD="helm upgrade ${{ inputs.release_name }} ${{ inputs.chart }} \
+            --install \
+            --namespace ${{ inputs.namespace }} \
+            --timeout ${{ inputs.timeout }} \
+            --history-max=3 \
+            --rollback-on-failure \
+            --debug"
+
+          if [ -n "${{ inputs.chart_version }}" ]; then
+            HELM_CMD="$HELM_CMD --version ${{ inputs.chart_version }}"
+          fi
+
+          if [ -n "${{ inputs.values_file }}" ]; then
+            HELM_CMD="$HELM_CMD --values ${{ inputs.values_file }}"
+          fi
+
+          echo "Running: $HELM_CMD"
+          eval $HELM_CMD

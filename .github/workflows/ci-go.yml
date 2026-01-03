@@ -1,0 +1,61 @@
+name: Go CI
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: 'Repository to checkout'
+        required: true
+        type: string
+      build_path:
+        description: 'Path to main.go file'
+        required: false
+        type: string
+        default: './cmd/main.go'
+      binary_name:
+        description: 'Name of the output binary'
+        required: true
+        type: string
+
+env:
+  GO_VERSION: '1.25'
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repository }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run tests with coverage
+        run: |
+          go test ./... -v -race -coverprofile=coverage.out
+          go tool cover -html=coverage.out -o coverage.html
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage-report
+          path: coverage.html
+
+      - name: Build Go binary
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -ldflags="-s -w" -o ${{ inputs.binary_name }} ${{ inputs.build_path }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.binary_name }}
+          path: ${{ inputs.binary_name }}
