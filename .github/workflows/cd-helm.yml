@@ -92,6 +92,7 @@ jobs:
 
           HELM_CMD="helm upgrade ${{ inputs.release_name }} ${{ inputs.chart }} \
             --install \
+            --create-namespace \
             --namespace ${{ inputs.namespace }} \
             --timeout ${{ inputs.timeout }} \
             --history-max=3 \
@@ -112,3 +113,8 @@ jobs:
 
           echo "Running: $HELM_CMD"
           eval $HELM_CMD
+
+      - name: Cleanup kubeconfig
+        if: always()
+        run: |
+          rm -f $HOME/.kube/config
