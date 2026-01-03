@@ -25,17 +25,17 @@ on:
         type: string
         default: ''
       values_file:
-        description: 'Path to values file (relative to repo root)'
+        description: 'Path to values file'
         required: false
         type: string
         default: ''
       helm_repo_name:
-        description: 'Helm repo name (only for traditional repos, not OCI)'
+        description: 'Helm repo name'
         required: false
         type: string
         default: ''
       helm_repo_url:
-        description: 'Helm repo URL (only for traditional repos, not OCI)'
+        description: 'Helm repo URL'
         required: false
         type: string
         default: ''
@@ -71,7 +71,7 @@ jobs:
       - name: Configure kubeconfig
         run: |
           mkdir -p $HOME/.kube
-          echo "${{ secrets.kube_config }}" > $HOME/.kube/config
+          echo "${{ secrets.kube_config }}" | base64 -d > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
 
       - name: Add Helm repository
