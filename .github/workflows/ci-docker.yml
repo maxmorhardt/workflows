@@ -77,9 +77,9 @@ jobs:
           DOCKER_BUILD_SUMMARY: false
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
+          context: .
           load: true
           tags: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-          cache-from: type=gha
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@master
@@ -100,6 +100,7 @@ jobs:
         id: push
         uses: docker/build-push-action@v6
         with:
+          context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
