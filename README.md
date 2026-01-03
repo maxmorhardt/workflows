@@ -33,7 +33,7 @@ on:
 
 jobs:
   deploy:
-    uses: your-org/workflows/.github/workflows/deploy.yml@main
+    uses: your-org/workflows/.github/workflows/ci-docker.yml@main
     secrets: inherit
 ```
 
