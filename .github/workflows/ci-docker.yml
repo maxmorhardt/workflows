@@ -49,6 +49,14 @@ jobs:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.artifact_path }}
 
+      - name: Verify artifact contents
+        if: ${{ inputs.artifact_name != '' }}
+        run: |
+          echo "Contents of workspace:"
+          ls -la
+          echo "Contents of ${{ inputs.artifact_path }}:"
+          ls -la ${{ inputs.artifact_path }} || echo "Directory not found"
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
