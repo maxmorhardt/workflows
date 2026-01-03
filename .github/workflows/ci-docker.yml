@@ -62,20 +62,12 @@ jobs:
           username: ${{ secrets.docker_username }}
           password: ${{ secrets.docker_password }}
 
-      - name: Build Docker image
+      - name: Build for scan
         uses: docker/build-push-action@v6
         with:
-          context: .
-          platforms: linux/arm64/v8
-          push: false
           load: true
-          tags: |
-            ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-            ${{ secrets.docker_username }}/${{ inputs.app_name }}:latest
+          tags: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: false
-          sbom: false
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@master
@@ -92,12 +84,11 @@ jobs:
         with:
           sarif_file: 'trivy-docker.sarif'
 
-      - name: Push Docker image
+      - name: Build and push
         id: push
         uses: docker/build-push-action@v6
         with:
-          context: .
-          platforms: linux/arm64/v8
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}

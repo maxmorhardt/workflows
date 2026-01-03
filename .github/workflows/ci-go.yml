@@ -40,6 +40,14 @@ jobs:
       - name: Verify dependencies
         run: go mod verify
 
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run linter
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+
       - name: Run tests
         run: go test ./... -v -race -coverprofile=coverage.out
 
@@ -52,13 +60,17 @@ jobs:
       - name: Generate coverage report
         run: go tool cover -html=coverage.out -o coverage.html
 
-      - name: Run go vet
-        run: go vet ./...
-
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v9
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v6
+        if: always()
         with:
-          version: latest
+          name: go-coverage-report
+          path: coverage.html
+          retention-days: 7
+
+      - name: Build Go binary
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -ldflags="-s -w" -o ${{ inputs.binary_name }} ${{ inputs.build_path }}
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@master
@@ -75,17 +87,6 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-go.sarif'
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v6
-        with:
-          name: go-coverage-report
-          path: coverage.html
-          retention-days: 7
-
-      - name: Build Go binary
-        run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -ldflags="-s -w" -o ${{ inputs.binary_name }} ${{ inputs.build_path }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v6

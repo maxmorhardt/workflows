@@ -38,14 +38,25 @@ jobs:
       - name: Type check
         run: npm run type-check
 
-      - name: Run ESLint
+      - name: Run linter
         run: npm run lint
+
+      - name: Security audit
+        run: npm audit --production --audit-level=high
 
       - name: Run tests with coverage
         run: npm run test -- --run --coverage
 
-      - name: Security audit
-        run: npm audit --production --audit-level=high
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: test-coverage-report
+          path: coverage/
+          retention-days: 7
+
+      - name: Build application
+        run: npm run build
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@master
@@ -62,16 +73,6 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-node.sarif'
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v6
-        with:
-          name: test-coverage-report
-          path: coverage/
-          retention-days: 7
-
-      - name: Build application
-        run: npm run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
