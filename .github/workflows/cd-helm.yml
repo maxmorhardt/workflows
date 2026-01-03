@@ -1,4 +1,4 @@
-name: Helm Deploy
+name: Helm CD
 
 on:
   workflow_call:
