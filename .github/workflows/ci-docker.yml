@@ -77,26 +77,20 @@ jobs:
           provenance: true
           sbom: true
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-          format: 'table'
-          exit-code: '1'
-          severity: 'HIGH,CRITICAL'
-
-      - name: Run Trivy vulnerability scanner (SARIF)
+      - name: Run Trivy scan
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
           format: 'sarif'
-          output: 'trivy-results.sarif'
+          output: 'trivy-docker.sarif'
+          exit-code: '1'
+          severity: 'HIGH,CRITICAL'
 
-      - name: Upload Trivy results to GitHub Security
+      - name: Upload Trivy results
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: 'trivy-docker.sarif'
 
       - name: Push Docker image
         id: push
@@ -115,7 +109,7 @@ jobs:
 
       - name: Report image details
         run: |
-          echo "### 📦 Docker Image Published" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Image Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image Digest:** \`${{ steps.push.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

@@ -53,7 +53,7 @@ jobs:
         run: |
           helm lint ${{ inputs.chart_directory }} --strict
 
-      - name: Template and validate with Kubeconform
+      - name: Template and validate
         working-directory: ${{ inputs.working_directory }}
         run: |
           helm template test-release ${{ inputs.chart_directory }} | kubeconform -strict -summary
@@ -80,7 +80,7 @@ jobs:
           echo "Version: $CHART_VERSION"
           echo "SHA256: $(cat ${CHART_FILE}.sha256)"
 
-      - name: Push Helm chart to registry
+      - name: Push Helm chart
         id: push
         working-directory: ${{ inputs.working_directory }}
         run: |
@@ -97,7 +97,7 @@ jobs:
           path: |
             ${{ inputs.working_directory }}/${{ steps.package.outputs.chart_file }}
             ${{ inputs.working_directory }}/${{ steps.package.outputs.chart_file }}.sha256
-          retention-days: 90
+          retention-days: 30
 
       - name: Report chart details
         run: |
