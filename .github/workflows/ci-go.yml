@@ -24,6 +24,7 @@ jobs:
   ci:
     name: Go CI - ${{ inputs.binary_name }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
