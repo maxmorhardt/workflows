@@ -20,6 +20,11 @@ on:
         required: false
         type: string
         default: ''
+      artifact_path:
+        description: 'Path where the artifact should be downloaded'
+        required: false
+        type: string
+        default: '.'
     secrets:
       docker_username:
         required: true
@@ -41,6 +46,7 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: ${{ inputs.artifact_name }}
+          path: ${{ inputs.artifact_path }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
