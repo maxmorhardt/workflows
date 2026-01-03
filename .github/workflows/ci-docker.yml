@@ -49,15 +49,6 @@ jobs:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.artifact_path }}
 
-      - name: Verify build context
-        run: |
-          echo "Checking for .dockerignore that might exclude dist/"
-          if [ -f .dockerignore ]; then
-            cat .dockerignore
-          fi
-          echo "Verifying dist/ exists:"
-          ls -la dist/ || echo "dist/ not found!"
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
