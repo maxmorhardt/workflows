@@ -19,7 +19,7 @@ on:
         description: 'Working directory for helm package command'
         required: false
         type: string
-        default: 'charts'
+        default: '.'
     secrets:
       docker_username:
         required: true
