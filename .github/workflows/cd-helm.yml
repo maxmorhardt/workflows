@@ -49,8 +49,8 @@ on:
         required: true
 
 jobs:
-  deploy:
-    name: Deploy ${{ inputs.release_name }}
+  cd:
+    name: Helm CD - ${{ inputs.release_name }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

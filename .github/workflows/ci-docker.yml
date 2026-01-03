@@ -22,8 +22,8 @@ on:
         required: true
 
 jobs:
-  build:
-    name: Build and Push Docker Image
+  ci:
+    name: Docker CI - ${{ inputs.app_name }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

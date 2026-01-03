@@ -22,7 +22,7 @@ env:
 
 jobs:
   ci:
-    name: CI
+    name: Go CI - ${{ inputs.binary_name }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

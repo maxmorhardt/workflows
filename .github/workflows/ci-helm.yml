@@ -27,8 +27,8 @@ on:
         required: true
 
 jobs:
-  helm:
-    name: Package and Push Helm Chart
+  ci:
+    name: Helm CI - ${{ inputs.chart_name }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

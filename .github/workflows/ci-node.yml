@@ -1,4 +1,4 @@
-name: NPM CI
+name: Node CI
 
 on:
   workflow_call:
@@ -7,13 +7,17 @@ on:
         description: 'Repository to checkout'
         required: true
         type: string
+      app_name:
+        description: 'Application name'
+        required: true
+        type: string
 
 env:
   NODE_VERSION: '24'
 
 jobs:
   ci:
-    name: CI
+    name: Node CI - ${{ inputs.app_name }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
