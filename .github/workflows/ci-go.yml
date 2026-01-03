@@ -25,9 +25,6 @@ jobs:
     name: Go CI - ${{ inputs.binary_name }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    permissions:
-      contents: read
-      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
