@@ -1,10 +1,10 @@
-name: Helm Deploy v2
+name: Helm Deploy
 
 on:
   workflow_call:
     inputs:
       repository:
-        description: 'Git repository to checkout'
+        description: 'Repository to checkout'
         required: true
         type: string
       release_name:
