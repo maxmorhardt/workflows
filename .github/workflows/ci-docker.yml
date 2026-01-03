@@ -49,13 +49,14 @@ jobs:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.artifact_path }}
 
-      - name: Verify artifact contents
-        if: ${{ inputs.artifact_name != '' }}
+      - name: Verify build context
         run: |
-          echo "Contents of workspace:"
-          ls -la
-          echo "Contents of ${{ inputs.artifact_path }}:"
-          ls -la ${{ inputs.artifact_path }} || echo "Directory not found"
+          echo "Checking for .dockerignore that might exclude dist/"
+          if [ -f .dockerignore ]; then
+            cat .dockerignore
+          fi
+          echo "Verifying dist/ exists:"
+          ls -la dist/ || echo "dist/ not found!"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
