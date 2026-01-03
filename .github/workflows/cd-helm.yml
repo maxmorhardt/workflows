@@ -44,6 +44,11 @@ on:
         required: false
         type: string
         default: '5m'
+      image_tag:
+        description: 'Image tag to deploy'
+        required: false
+        type: string
+        default: ''
     secrets:
       kube_config:
         required: true
@@ -98,6 +103,10 @@ jobs:
 
           if [ -n "${{ inputs.values_file }}" ]; then
             HELM_CMD="$HELM_CMD --values ${{ inputs.values_file }}"
+          fi
+
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            HELM_CMD="$HELM_CMD --set images.tag=${{ inputs.image_tag }}"
           fi
 
           echo "Running: $HELM_CMD"
