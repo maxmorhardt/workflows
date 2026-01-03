@@ -108,3 +108,8 @@ jobs:
           echo "**Registry:** \`oci://docker.io/${{ secrets.docker_username }}/${{ inputs.chart_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Digest:** \`${{ steps.push.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Logout from Helm registry
+        if: always()
+        run: |
+          helm registry logout docker.io
