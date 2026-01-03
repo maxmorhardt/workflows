@@ -74,8 +74,8 @@ jobs:
             ${{ secrets.docker_username }}/${{ inputs.app_name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          provenance: true
-          sbom: true
+          provenance: false
+          sbom: false
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@master

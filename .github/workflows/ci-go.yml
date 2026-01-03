@@ -41,9 +41,16 @@ jobs:
         run: go mod verify
 
       - name: Run tests
-        run: |
-          go test ./... -v -race -coverprofile=coverage.out
-          go tool cover -html=coverage.out -o coverage.html
+        run: go test ./... -v -race -coverprofile=coverage.out
+
+      - name: Check coverage threshold
+        uses: vladopajic/go-test-coverage@v2
+        with:
+          config: ./.testcoverage.yml
+          profile: coverage.out
+
+      - name: Generate coverage report
+        run: go tool cover -html=coverage.out -o coverage.html
 
       - name: Run go vet
         run: go vet ./...
