@@ -108,7 +108,7 @@ jobs:
           fi
 
           if [ -n "${{ inputs.image_tag }}" ]; then
-            HELM_CMD="$HELM_CMD --set images.tag=${{ inputs.image_tag }}"
+            HELM_CMD="$HELM_CMD --set image.tag=${{ inputs.image_tag }}"
           fi
 
           echo "Running: $HELM_CMD"
