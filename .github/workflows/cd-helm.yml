@@ -97,6 +97,7 @@ jobs:
             --timeout ${{ inputs.timeout }} \
             --history-max=3 \
             --rollback-on-failure \
+            --wait \
             --debug"
 
           if [ -n "${{ inputs.chart_version }}" ]; then
