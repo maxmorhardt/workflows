@@ -67,7 +67,7 @@ jobs:
           repository: ${{ inputs.repository }}
 
       - name: Setup Tailscale
-        uses: tailscale/github-action@v2
+        uses: tailscale/github-action@v4
         with:
           authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
 
