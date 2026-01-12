@@ -52,6 +52,8 @@ on:
     secrets:
       kube_config:
         required: true
+      tailscale_auth_key:
+        required: true
 
 jobs:
   cd:
@@ -63,6 +65,11 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.repository }}
+
+      - name: Setup Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
