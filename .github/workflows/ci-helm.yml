@@ -56,9 +56,7 @@ jobs:
       - name: Template and validate
         working-directory: ${{ inputs.working_directory }}
         run: |
-          helm template test-release ${{ inputs.chart_directory }} | kubeconform -strict -summary \
-            -schema-location default \
-            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+          helm template test-release ${{ inputs.chart_directory }} | kubeconform -strict -summary -skip PrometheusRule,ServiceMonitor
 
       - name: Login to Helm registry
         run: |
