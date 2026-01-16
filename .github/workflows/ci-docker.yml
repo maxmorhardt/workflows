@@ -25,11 +25,6 @@ on:
         required: false
         type: string
         default: '.'
-      skip_trivy:
-        description: 'Skip Trivy security scan'
-        required: false
-        type: boolean
-        default: false
     secrets:
       docker_username:
         required: true
@@ -68,7 +63,6 @@ jobs:
           password: ${{ secrets.docker_password }}
 
       - name: Build for scan
-        if: ${{ !inputs.skip_trivy }}
         uses: docker/build-push-action@v6
         env:
           DOCKER_BUILD_SUMMARY: false
@@ -79,7 +73,6 @@ jobs:
           tags: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
 
       - name: Run Trivy scan
-        if: ${{ !inputs.skip_trivy }}
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
@@ -90,7 +83,7 @@ jobs:
 
       - name: Upload Trivy results
         uses: github/codeql-action/upload-sarif@v4
-        if: ${{ !inputs.skip_trivy && always() }}
+        if: always()
         with:
           sarif_file: 'trivy-docker.sarif'
 
