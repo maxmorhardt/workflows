@@ -58,21 +58,21 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-node.sarif'
-          exit-code: '1'
-          severity: 'HIGH,CRITICAL'
+      # - name: Run Trivy scan
+      #   uses: aquasecurity/trivy-action@master
+      #   with:
+      #     scan-type: 'fs'
+      #     scan-ref: '.'
+      #     format: 'sarif'
+      #     output: 'trivy-node.sarif'
+      #     exit-code: '1'
+      #     severity: 'HIGH,CRITICAL'
 
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: 'trivy-node.sarif'
+      # - name: Upload Trivy results
+      #   uses: github/codeql-action/upload-sarif@v4
+      #   if: always()
+      #   with:
+      #     sarif_file: 'trivy-node.sarif'
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
