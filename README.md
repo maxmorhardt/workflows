@@ -19,6 +19,7 @@ Required secrets in calling repositories:
 - `DOCKER_USERNAME` - Docker Hub username
 - `DOCKER_PASSWORD` - Docker Hub password/token
 - `KUBE_CONFIG` - Base64-encoded kubeconfig file
+- `TAILSCALE_AUTH_KEY` - Tailscale auth key
 
 ## Usage
 
