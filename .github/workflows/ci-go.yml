@@ -19,7 +19,7 @@ on:
     secrets:
       oidc_client_id:
         required: true			
-      oid_client_secret:
+      oidc_client_secret:
         required: true			
 
 env:
