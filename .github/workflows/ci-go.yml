@@ -25,7 +25,7 @@ on:
 env:
   GO_VERSION: '1.25'
   OIDC_CLIENT_ID: ${{ secrets.oidc_client_id }}
-  OIDC_CLIENT_SECRET: ${{ secrets.oid_client_secret }}
+  OIDC_CLIENT_SECRET: ${{ secrets.oidc_client_secret }}
 
 jobs:
   ci:
