@@ -52,8 +52,11 @@ on:
     secrets:
       kube_config:
         required: true
-      tailscale_auth_key:
+      ts_oauth_client_id:
         required: true
+      ts_oauth_client_secret:
+        required: true
+
 
 jobs:
   cd:
@@ -69,7 +72,9 @@ jobs:
       - name: Setup Tailscale
         uses: tailscale/github-action@v4
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTH_KEY }}
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
