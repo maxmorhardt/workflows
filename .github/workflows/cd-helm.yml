@@ -54,7 +54,7 @@ on:
         required: true
       ts_oauth_client_id:
         required: true
-      ts_oauth_client_secret:
+      ts_oauth_secret:
         required: true
 
 
@@ -73,7 +73,7 @@ jobs:
         uses: tailscale/github-action@v4
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_CLIENT_SECRET }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
 
       - name: Setup kubectl
