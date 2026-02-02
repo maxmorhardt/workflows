@@ -19,13 +19,16 @@ on:
     secrets:
       oidc_client_id:
         required: true			
-      oidc_client_secret:
-        required: true			
+      oidc_user:
+        required: true
+      oidc_password:
+        required: true		
 
 env:
   GO_VERSION: '1.25'
   OIDC_CLIENT_ID: ${{ secrets.oidc_client_id }}
-  OIDC_CLIENT_SECRET: ${{ secrets.oidc_client_secret }}
+  OIDC_USER: ${{ secrets.oidc_user }}
+  OIDC_PASSWORD: ${{ secrets.oidc_password }}
 
 jobs:
   ci:
