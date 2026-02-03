@@ -63,16 +63,9 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-node.sarif'
+          format: 'table'
           exit-code: '1'
           severity: 'HIGH,CRITICAL'
-
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: 'trivy-node.sarif'
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6

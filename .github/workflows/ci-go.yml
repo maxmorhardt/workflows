@@ -17,18 +17,12 @@ on:
         required: true
         type: string
     secrets:
-      oidc_client_id:
-        required: true			
-      oidc_user:
+      test_env:
+        description: 'Test environment file content'
         required: true
-      oidc_password:
-        required: true		
 
 env:
   GO_VERSION: '1.25'
-  OIDC_CLIENT_ID: ${{ secrets.oidc_client_id }}
-  OIDC_USER: ${{ secrets.oidc_user }}
-  OIDC_PASSWORD: ${{ secrets.oidc_password }}
 
 jobs:
   ci:
@@ -58,8 +52,14 @@ jobs:
         with:
           version: latest
 
+      - name: Setup test environment
+        run: echo "${{ secrets.test_env }}" > .env.test
+
       - name: Run tests
-        run: go test ./... -v -race -coverprofile=coverage.out
+        run: go test ./... -race -coverprofile=coverage.out
+
+      - name: Cleanup test environment
+        run: rm -f .env.test
 
       - name: Check coverage threshold
         uses: vladopajic/go-test-coverage@v2
@@ -87,16 +87,9 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-go.sarif'
+          format: 'table'
           exit-code: '1'
           severity: 'HIGH,CRITICAL'
-
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: 'trivy-go.sarif'
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v6

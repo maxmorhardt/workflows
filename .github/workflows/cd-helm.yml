@@ -57,7 +57,6 @@ on:
       ts_oauth_secret:
         required: true
 
-
 jobs:
   cd:
     name: Helm CD - ${{ inputs.release_name }}
@@ -109,8 +108,7 @@ jobs:
             --timeout ${{ inputs.timeout }} \
             --history-max=3 \
             --rollback-on-failure \
-            --wait \
-            --debug"
+            --wait
 
           if [ -n "${{ inputs.chart_version }}" ]; then
             HELM_CMD="$HELM_CMD --version ${{ inputs.chart_version }}"
