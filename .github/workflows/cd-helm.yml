@@ -108,7 +108,7 @@ jobs:
             --timeout ${{ inputs.timeout }} \
             --history-max=3 \
             --rollback-on-failure \
-            --wait
+            --wait"
 
           if [ -n "${{ inputs.chart_version }}" ]; then
             HELM_CMD="$HELM_CMD --version ${{ inputs.chart_version }}"
