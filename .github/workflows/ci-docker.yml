@@ -13,8 +13,9 @@ on:
         type: string
       app_version:
         description: 'Application version to tag the Docker image'
-        required: true
+        required: false
         type: string
+        default: 'ci'
       artifact_name:
         description: 'Name of the build artifact to download'
         required: false
