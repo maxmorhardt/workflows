@@ -20,6 +20,11 @@ on:
         required: false
         type: string
         default: '.'
+      push:
+        description: 'Push the chart to the registry'
+        required: false
+        type: boolean
+        default: false
     secrets:
       docker_username:
         required: true
@@ -59,6 +64,7 @@ jobs:
           helm template test-release ${{ inputs.chart_directory }} | kubeconform -strict -summary -skip PrometheusRule,ServiceMonitor
 
       - name: Login to Helm registry
+        if: inputs.push
         run: |
           echo "${{ secrets.docker_password }}" | helm registry login docker.io \
             --username ${{ secrets.docker_username }} --password-stdin
@@ -81,6 +87,7 @@ jobs:
           echo "SHA256: $(cat ${CHART_FILE}.sha256)"
 
       - name: Push Helm chart
+        if: inputs.push
         id: push
         working-directory: ${{ inputs.working_directory }}
         run: |
@@ -100,6 +107,7 @@ jobs:
           retention-days: 30
 
       - name: Report chart details
+        if: inputs.push
         run: |
           echo "### Helm Chart Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -110,6 +118,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: Logout from Helm registry
-        if: always()
+        if: always() && inputs.push
         run: |
           helm registry logout docker.io
