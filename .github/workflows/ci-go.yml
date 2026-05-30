@@ -7,15 +7,11 @@ on:
         description: 'Repository to checkout'
         required: true
         type: string
-      build_path:
-        description: 'Path to main.go file'
+      swagger:
+        description: 'Whether the project has swagger docs to verify (runs make swag-check)'
         required: false
-        type: string
-        default: './cmd/main.go'
-      binary_name:
-        description: 'Name of the output binary'
-        required: true
-        type: string
+        type: boolean
+        default: false
     secrets:
       test_env:
         description: 'Test environment file content'
@@ -26,7 +22,7 @@ env:
 
 jobs:
   ci:
-    name: Go CI - ${{ inputs.binary_name }}
+    name: Go CI - ${{ github.event.repository.name }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -42,33 +38,34 @@ jobs:
           cache: true
 
       - name: Verify dependencies
-        run: go mod verify
+        run: make verify
 
       - name: Run go vet
-        run: go vet ./...
+        run: make vet
 
       - name: Run linter
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
 
+      - name: Check swagger docs are up to date
+        if: ${{ inputs.swagger }}
+        run: make swag-check
+
       - name: Setup test environment
         run: echo "${{ secrets.test_env }}" > .env.test
 
-      - name: Run tests
-        run: go test ./... -race -coverprofile=coverage.out
+      - name: Run unit tests and coverage gate
+        run: make cover RACE=-race
+
+      - name: Run integration tests
+        run: make test-integration RACE=-race
 
       - name: Cleanup test environment
         run: rm -f .env.test
 
-      - name: Check coverage threshold
-        uses: vladopajic/go-test-coverage@v2
-        with:
-          config: ./.testcoverage.yml
-          profile: coverage.out
-
       - name: Generate coverage report
-        run: go tool cover -html=coverage.out -o coverage.html
+        run: make cover-html
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v7
@@ -79,8 +76,11 @@ jobs:
           retention-days: 7
 
       - name: Build Go binary
-        run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -ldflags="-s -w" -o ${{ inputs.binary_name }} ${{ inputs.build_path }}
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: arm64
+        run: make build BUILD_FLAGS="-a" LDFLAGS="-s -w"
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@0.35.0
@@ -94,6 +94,6 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v6
         with:
-          name: ${{ inputs.binary_name }}
-          path: ${{ inputs.binary_name }}
+          name: ${{ github.event.repository.name }}
+          path: bin/
           retention-days: 7
