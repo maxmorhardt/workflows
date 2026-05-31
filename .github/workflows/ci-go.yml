@@ -12,10 +12,6 @@ on:
         required: false
         type: boolean
         default: false
-    secrets:
-      test_env:
-        description: 'Test environment file content'
-        required: true
 
 env:
   GO_VERSION: '1.26'
@@ -52,17 +48,11 @@ jobs:
         if: ${{ inputs.swagger }}
         run: make swag-check
 
-      - name: Setup test environment
-        run: echo "${{ secrets.test_env }}" > .env.test
-
       - name: Run unit tests and coverage gate
         run: make cover RACE=-race
 
       - name: Run integration tests
         run: make test-integration RACE=-race
-
-      - name: Cleanup test environment
-        run: rm -f .env.test
 
       - name: Generate coverage report
         run: make cover-html
