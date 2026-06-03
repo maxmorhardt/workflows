@@ -50,7 +50,7 @@ jobs:
 
       - name: Download build artifact
         if: ${{ inputs.artifact_name != '' }}
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.artifact_path }}
@@ -80,7 +80,7 @@ jobs:
           tags: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
 
       - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
           format: 'table'
