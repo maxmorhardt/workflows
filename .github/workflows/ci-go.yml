@@ -79,7 +79,7 @@ jobs:
         run: make build BUILD_FLAGS="-a" LDFLAGS="-s -w"
 
       - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -89,7 +89,7 @@ jobs:
 
       - name: Upload build artifact
         if: ${{ inputs.build }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ github.event.repository.name }}
           path: bin/

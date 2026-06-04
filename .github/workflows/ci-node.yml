@@ -27,7 +27,7 @@ jobs:
           repository: ${{ inputs.repository }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -62,7 +62,7 @@ jobs:
         run: pnpm run build
 
       - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@0.35.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -71,7 +71,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
