@@ -14,9 +14,9 @@ Shared dependency-update preset for every maxmorhardt repo. Each repo has a two-
 
 ## One-time setup (manual)
 
-1. Install the Mend Renovate GitHub App: https://github.com/apps/renovate - grant it all repos (or the nine with configs).
+1. Install the Mend Renovate GitHub App: https://github.com/apps/renovate - grant it all repos (or only the repos you want Renovate enabled on).
 2. Enable **Dependabot alerts** in each repo (Settings → Security → Dependabot alerts) — Renovate's `vulnerabilityAlerts` reads these to open immediate security PRs. `osvVulnerabilityAlerts` works without it as a fallback.
-3. Merge the `renovate.json` in each repo. Renovate opens an onboarding PR per repo on first run - merge those.
+3. Ensure each repo contains a `renovate.json` (either merge this file directly, or merge Renovate's onboarding PR on first run if it opens one).
 
 ## Notes
 
