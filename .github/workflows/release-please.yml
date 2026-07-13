@@ -3,12 +3,12 @@ name: Release Please
 on:
   workflow_call:
     inputs:
-      config-file:
+      config_file:
         description: 'Path to the release-please config'
         required: false
         type: string
         default: release-please-config.json
-      manifest-file:
+      manifest_file:
         description: 'Path to the release-please manifest'
         required: false
         type: string
@@ -28,5 +28,5 @@ jobs:
       - uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.release_please_token }}
-          config-file: ${{ inputs.config-file }}
-          manifest-file: ${{ inputs.manifest-file }}
+          config-file: ${{ inputs.config_file }}
+          manifest-file: ${{ inputs.manifest_file }}
