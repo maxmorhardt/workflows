@@ -1,0 +1,32 @@
+name: Release Please
+
+on:
+  workflow_call:
+    inputs:
+      config_file:
+        description: 'Path to the release-please config'
+        required: false
+        type: string
+        default: release-please-config.json
+      manifest_file:
+        description: 'Path to the release-please manifest'
+        required: false
+        type: string
+        default: .release-please-manifest.json
+    secrets:
+      release_please_token:
+        description: 'PAT/App token so the created tag and release trigger downstream CI/CD'
+        required: true
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.release_please_token }}
+          config-file: ${{ inputs.config_file }}
+          manifest-file: ${{ inputs.manifest_file }}

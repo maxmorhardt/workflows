@@ -1,0 +1,68 @@
+name: Helm Rollback
+
+on:
+  workflow_call:
+    inputs:
+      release_name:
+        description: 'Helm release name'
+        required: true
+        type: string
+      namespace:
+        description: 'Kubernetes namespace'
+        required: true
+        type: string
+      timeout:
+        description: 'Helm operation timeout'
+        required: false
+        type: string
+        default: '5m'
+    secrets:
+      kube_config:
+        required: true
+      ts_oauth_client_id:
+        required: true
+      ts_oauth_secret:
+        required: true
+
+jobs:
+  rollback:
+    name: Helm Rollback - ${{ inputs.release_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Setup Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v5
+        with:
+          version: 'latest'
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v5
+        with:
+          version: 'latest'
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.kube_config }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Roll back release
+        run: |
+          echo "Rolling back ${{ inputs.release_name }} in namespace ${{ inputs.namespace }}"
+
+          helm rollback ${{ inputs.release_name }} \
+            --namespace ${{ inputs.namespace }} \
+            --timeout ${{ inputs.timeout }} \
+            --wait
+
+      - name: Cleanup kubeconfig
+        if: always()
+        run: |
+          rm -f $HOME/.kube/config

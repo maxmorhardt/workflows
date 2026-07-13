@@ -1,0 +1,64 @@
+name: Smoke Test (Go)
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: 'Repository containing the smoke tests'
+        required: true
+        type: string
+      release_name:
+        description: 'Helm release name'
+        required: true
+        type: string
+      namespace:
+        description: 'Kubernetes namespace'
+        required: true
+        type: string
+      smoke_url:
+        description: 'Base URL the smoke tests run against'
+        required: true
+        type: string
+      timeout:
+        description: 'Helm rollback timeout'
+        required: false
+        type: string
+        default: '5m'
+    secrets:
+      kube_config:
+        required: true
+      ts_oauth_client_id:
+        required: true
+      ts_oauth_secret:
+        required: true
+
+jobs:
+  smoke:
+    name: Smoke Test - ${{ inputs.release_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.repository }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Run smoke tests
+        env:
+          SMOKE_BASE_URL: ${{ inputs.smoke_url }}
+        run: make test-smoke
+
+  rollback:
+    needs: smoke
+    if: ${{ failure() }}
+    uses: maxmorhardt/workflows/.github/workflows/cd-helm-rollback.yml@main
+    with:
+      release_name: ${{ inputs.release_name }}
+      namespace: ${{ inputs.namespace }}
+      timeout: ${{ inputs.timeout }}
+    secrets: inherit
