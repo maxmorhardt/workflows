@@ -25,17 +25,15 @@ on:
         required: false
         type: boolean
         default: false
-    secrets:
-      docker_username:
-        required: true
-      docker_password:
-        required: true
 
 jobs:
   ci:
     name: Helm CI - ${{ inputs.chart_name }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -68,8 +66,8 @@ jobs:
       - name: Login to Helm registry
         if: inputs.push
         run: |
-          echo "${{ secrets.docker_password }}" | helm registry login docker.io \
-            --username ${{ secrets.docker_username }} --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+            --username ${{ github.actor }} --password-stdin
 
       - name: Package Helm chart
         id: package
@@ -93,7 +91,7 @@ jobs:
         id: push
         working-directory: ${{ inputs.working_directory }}
         run: |
-          PUSH_OUTPUT=$(helm push ${{ steps.package.outputs.chart_file }} oci://docker.io/${{ secrets.docker_username }} 2>&1)
+          PUSH_OUTPUT=$(helm push ${{ steps.package.outputs.chart_file }} oci://ghcr.io/${{ github.repository_owner }}/charts 2>&1)
           echo "$PUSH_OUTPUT"
 
           DIGEST=$(echo "$PUSH_OUTPUT" | grep -oP 'Digest: \K[^ ]+')
@@ -115,11 +113,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Chart:** \`${{ inputs.chart_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** \`${{ steps.package.outputs.chart_version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Registry:** \`oci://docker.io/${{ secrets.docker_username }}/${{ inputs.chart_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry:** \`oci://ghcr.io/${{ github.repository_owner }}/charts/${{ inputs.chart_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Digest:** \`${{ steps.push.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: Logout from Helm registry
         if: always() && inputs.push
         run: |
-          helm registry logout docker.io
+          helm registry logout ghcr.io
