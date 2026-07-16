@@ -1,0 +1,121 @@
+name: Manifest CD
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: 'Repository to checkout (for local manifest files)'
+        required: true
+        type: string
+      manifests:
+        description: 'Space/newline-separated manifest files or URLs to apply'
+        required: true
+        type: string
+      wait_for:
+        description: 'Newline-separated kubectl wait expressions (each appended to `kubectl wait --timeout=<timeout>`)'
+        required: false
+        type: string
+        default: ''
+      rollout:
+        description: 'Newline-separated `kubectl rollout status` targets to wait on'
+        required: false
+        type: string
+        default: ''
+      post_manifests:
+        description: 'Manifests applied after wait/rollout (e.g. CRs depending on freshly-installed CRDs)'
+        required: false
+        type: string
+        default: ''
+      timeout:
+        description: 'Timeout for wait/rollout operations'
+        required: false
+        type: string
+        default: '5m'
+    secrets:
+      kube_config:
+        required: true
+      ts_oauth_client_id:
+        required: true
+      ts_oauth_secret:
+        required: true
+
+jobs:
+  cd:
+    name: Manifest CD
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.repository }}
+
+      - name: Setup Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.ts_oauth_client_id }}
+          oauth-secret: ${{ secrets.ts_oauth_secret }}
+          tags: tag:ci
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v5
+        with:
+          version: 'latest'
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.kube_config }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Apply manifests
+        env:
+          MANIFESTS: ${{ inputs.manifests }}
+        run: |
+          args=""
+          for m in $MANIFESTS; do
+            args="$args -f $m"
+          done
+          echo "kubectl apply$args"
+          kubectl apply $args
+
+      - name: Wait for resources
+        if: ${{ inputs.wait_for != '' }}
+        env:
+          WAIT_FOR: ${{ inputs.wait_for }}
+          TIMEOUT: ${{ inputs.timeout }}
+        run: |
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            echo "kubectl wait --timeout=$TIMEOUT $line"
+            kubectl wait --timeout="$TIMEOUT" $line
+          done <<< "$WAIT_FOR"
+
+      - name: Wait for rollouts
+        if: ${{ inputs.rollout != '' }}
+        env:
+          ROLLOUT: ${{ inputs.rollout }}
+          TIMEOUT: ${{ inputs.timeout }}
+        run: |
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            echo "kubectl rollout status $line --timeout=$TIMEOUT"
+            kubectl rollout status $line --timeout="$TIMEOUT"
+          done <<< "$ROLLOUT"
+
+      - name: Apply post-manifests
+        if: ${{ inputs.post_manifests != '' }}
+        env:
+          POST_MANIFESTS: ${{ inputs.post_manifests }}
+        run: |
+          args=""
+          for m in $POST_MANIFESTS; do
+            args="$args -f $m"
+          done
+          echo "kubectl apply$args"
+          kubectl apply $args
+
+      - name: Cleanup kubeconfig
+        if: always()
+        run: |
+          rm -f $HOME/.kube/config

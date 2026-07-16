@@ -48,3 +48,4 @@ jobs:
 
 ### Deployment Workflows
 - **Deploy with Helm** - Deploys applications to Kubernetes using Helm charts
+- **Deploy Manifests** - Applies raw Kubernetes manifests (files or URLs) with optional wait/rollout gating
