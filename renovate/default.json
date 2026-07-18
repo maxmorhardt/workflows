@@ -8,6 +8,7 @@
   ],
   "timezone": "America/New_York",
   "labels": ["dependencies"],
+  "reviewers": ["maxmorhardt"],
   "prConcurrentLimit": 5,
   "minimumReleaseAge": "3 days",
   "postUpdateOptions": ["gomodTidy"],
