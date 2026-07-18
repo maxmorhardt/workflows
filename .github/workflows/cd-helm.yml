@@ -63,6 +63,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -87,46 +89,59 @@ jobs:
           version: 'latest'
 
       - name: Configure kubeconfig
+        env:
+          KUBE_CONFIG: ${{ secrets.kube_config }}
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.kube_config }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
+          mkdir -p "$HOME/.kube"
+          echo "$KUBE_CONFIG" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
 
       - name: Add Helm repository
         if: ${{ inputs.helm_repo_name != '' && inputs.helm_repo_url != '' }}
+        env:
+          HELM_REPO_NAME: ${{ inputs.helm_repo_name }}
+          HELM_REPO_URL: ${{ inputs.helm_repo_url }}
         run: |
-          helm repo add ${{ inputs.helm_repo_name }} ${{ inputs.helm_repo_url }}
+          helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
           helm repo update
 
       - name: Deploy with Helm
+        env:
+          RELEASE_NAME: ${{ inputs.release_name }}
+          CHART: ${{ inputs.chart }}
+          NAMESPACE: ${{ inputs.namespace }}
+          TIMEOUT: ${{ inputs.timeout }}
+          CHART_VERSION: ${{ inputs.chart_version }}
+          VALUES_FILE: ${{ inputs.values_file }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
-          echo "Deploying ${{ inputs.release_name }} to namespace ${{ inputs.namespace }}"
+          echo "Deploying $RELEASE_NAME to namespace $NAMESPACE"
 
-          HELM_CMD="helm upgrade ${{ inputs.release_name }} ${{ inputs.chart }} \
-            --install \
-            --create-namespace \
-            --namespace ${{ inputs.namespace }} \
-            --timeout ${{ inputs.timeout }} \
-            --history-max=3 \
-            --rollback-on-failure \
-            --wait"
+          cmd=(helm upgrade "$RELEASE_NAME" "$CHART"
+            --install
+            --create-namespace
+            --namespace "$NAMESPACE"
+            --timeout "$TIMEOUT"
+            --history-max=3
+            --rollback-on-failure
+            --wait)
 
-          if [ -n "${{ inputs.chart_version }}" ]; then
-            HELM_CMD="$HELM_CMD --version ${{ inputs.chart_version }}"
+          if [ -n "$CHART_VERSION" ]; then
+            cmd+=(--version "$CHART_VERSION")
           fi
 
-          if [ -n "${{ inputs.values_file }}" ]; then
-            HELM_CMD="$HELM_CMD --values ${{ inputs.values_file }}"
+          if [ -n "$VALUES_FILE" ]; then
+            cmd+=(--values "$VALUES_FILE")
           fi
 
-          if [ -n "${{ inputs.image_tag }}" ]; then
-            HELM_CMD="$HELM_CMD --set image.tag=${{ inputs.image_tag }}"
+          if [ -n "$IMAGE_TAG" ]; then
+            cmd+=(--set "image.tag=$IMAGE_TAG")
           fi
 
-          echo "Running: $HELM_CMD"
-          eval $HELM_CMD
+          echo "Running: ${cmd[*]}"
+          "${cmd[@]}"
 
       - name: Cleanup kubeconfig
         if: always()
         run: |
-          rm -f $HOME/.kube/config
+          rm -f "$HOME/.kube/config"

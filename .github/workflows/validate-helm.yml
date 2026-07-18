@@ -37,7 +37,7 @@ on:
         type: boolean
         default: false
       ignore_missing_schemas:
-        description: 'Pass -ignore-missing-schemas to kubeconform (for charts emitting CRs without a public schema)'
+        description: 'Pass -ignore-missing-schemas to kubeconform'
         required: false
         type: boolean
         default: false
@@ -78,32 +78,43 @@ jobs:
 
       - name: Add Helm repository
         if: ${{ inputs.helm_repo_name != '' && inputs.helm_repo_url != '' }}
+        env:
+          HELM_REPO_NAME: ${{ inputs.helm_repo_name }}
+          HELM_REPO_URL: ${{ inputs.helm_repo_url }}
         run: |
-          helm repo add ${{ inputs.helm_repo_name }} ${{ inputs.helm_repo_url }}
+          helm repo add "$HELM_REPO_NAME" "$HELM_REPO_URL"
           helm repo update
 
       - name: Lint Helm chart
         if: ${{ inputs.lint }}
         working-directory: ${{ inputs.working_directory }}
+        env:
+          CHART: ${{ inputs.chart }}
         run: |
-          helm lint ${{ inputs.chart }} --strict
+          helm lint "$CHART" --strict
 
       - name: Template and validate
         working-directory: ${{ inputs.working_directory }}
+        env:
+          RELEASE_NAME: ${{ inputs.release_name }}
+          CHART: ${{ inputs.chart }}
+          CHART_VERSION: ${{ inputs.chart_version }}
+          VALUES_FILE: ${{ inputs.values_file }}
+          IGNORE_MISSING_SCHEMAS: ${{ inputs.ignore_missing_schemas }}
         run: |
-          TEMPLATE_CMD="helm template ${{ inputs.release_name }} ${{ inputs.chart }}"
-          if [ -n "${{ inputs.chart_version }}" ]; then
-            TEMPLATE_CMD="$TEMPLATE_CMD --version ${{ inputs.chart_version }}"
+          template_cmd=(helm template "$RELEASE_NAME" "$CHART")
+          if [ -n "$CHART_VERSION" ]; then
+            template_cmd+=(--version "$CHART_VERSION")
           fi
-          if [ -n "${{ inputs.values_file }}" ]; then
-            TEMPLATE_CMD="$TEMPLATE_CMD --values ${{ inputs.values_file }}"
+          if [ -n "$VALUES_FILE" ]; then
+            template_cmd+=(--values "$VALUES_FILE")
           fi
 
-          KUBECONFORM_CMD="kubeconform -strict -summary"
-          if [ "${{ inputs.ignore_missing_schemas }}" = "true" ]; then
-            KUBECONFORM_CMD="$KUBECONFORM_CMD -ignore-missing-schemas"
+          kubeconform_cmd=(kubeconform -strict -summary)
+          if [ "$IGNORE_MISSING_SCHEMAS" = "true" ]; then
+            kubeconform_cmd+=(-ignore-missing-schemas)
           fi
-          KUBECONFORM_CMD="$KUBECONFORM_CMD -schema-location default -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'"
+          kubeconform_cmd+=(-schema-location default -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json')
 
-          echo "Running: $TEMPLATE_CMD | $KUBECONFORM_CMD"
-          eval "$TEMPLATE_CMD | $KUBECONFORM_CMD"
+          echo "Running: ${template_cmd[*]} | ${kubeconform_cmd[*]}"
+          "${template_cmd[@]}" | "${kubeconform_cmd[@]}"

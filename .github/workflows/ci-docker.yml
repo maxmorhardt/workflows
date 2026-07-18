@@ -42,6 +42,8 @@ jobs:
     name: Docker CI - ${{ inputs.app_name }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -105,15 +107,21 @@ jobs:
 
       - name: Report image details
         if: ${{ inputs.push }}
+        env:
+          IMAGE: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
+          LATEST_IMAGE: ${{ secrets.docker_username }}/${{ inputs.app_name }}:latest
+          DIGEST: ${{ steps.push.outputs.digest }}
         run: |
-          echo "### Docker Image Published" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image Digest:** \`${{ steps.push.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          SIZE=$(docker image inspect ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }} --format='{{.Size}}')
-          SIZE_MB=$((SIZE / 1024 / 1024))
-          echo "**Image Size:** ${SIZE_MB}MB" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ secrets.docker_username }}/${{ inputs.app_name }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### Docker Image Published"
+            echo ""
+            echo "**Image Digest:** \`$DIGEST\`"
+            echo ""
+            SIZE=$(docker image inspect "$IMAGE" --format='{{.Size}}')
+            SIZE_MB=$((SIZE / 1024 / 1024))
+            echo "**Image Size:** ${SIZE_MB}MB"
+            echo ""
+            echo "**Tags:**"
+            echo "- \`$IMAGE\`"
+            echo "- \`$LATEST_IMAGE\`"
+          } >> "$GITHUB_STEP_SUMMARY"

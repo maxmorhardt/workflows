@@ -40,6 +40,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -59,21 +61,24 @@ jobs:
           version: 'latest'
 
       - name: Configure kubeconfig
+        env:
+          KUBE_CONFIG: ${{ secrets.kube_config }}
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.kube_config }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
+          mkdir -p "$HOME/.kube"
+          echo "$KUBE_CONFIG" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
 
       - name: Apply manifests
         env:
           MANIFESTS: ${{ inputs.manifests }}
         run: |
-          args=""
-          for m in $MANIFESTS; do
-            args="$args -f $m"
+          files=($MANIFESTS)
+          args=()
+          for m in "${files[@]}"; do
+            args+=(-f "$m")
           done
-          echo "kubectl apply$args"
-          kubectl apply $args
+          echo "kubectl apply ${args[*]}"
+          kubectl apply "${args[@]}"
 
       - name: Wait for resources
         if: ${{ inputs.wait_for != '' }}
