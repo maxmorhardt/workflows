@@ -1,0 +1,51 @@
+name: Manifest Validate
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: 'Repository to checkout'
+        required: true
+        type: string
+      manifests:
+        description: 'Newline or space-separated manifest files, directories, or globs to validate'
+        required: true
+        type: string
+      ignore_missing_schemas:
+        description: 'Pass -ignore-missing-schemas to kubeconform'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  validate:
+    name: Validate manifests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.repository }}
+
+      - name: Install Kubeconform
+        run: |
+          wget https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+          tar xf kubeconform-linux-amd64.tar.gz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Validate
+        env:
+          MANIFESTS: ${{ inputs.manifests }}
+        run: |
+          KUBECONFORM_CMD="kubeconform -strict -summary"
+          if [ "${{ inputs.ignore_missing_schemas }}" = "true" ]; then
+            KUBECONFORM_CMD="$KUBECONFORM_CMD -ignore-missing-schemas"
+          fi
+          KUBECONFORM_CMD="$KUBECONFORM_CMD -schema-location default -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'"
+
+          files=$(printf '%s' "$MANIFESTS" | tr '\n' ' ')
+          echo "Running: $KUBECONFORM_CMD $files"
+          eval "$KUBECONFORM_CMD $files"

@@ -62,6 +62,7 @@ jobs:
     name: Helm CD - ${{ inputs.release_name }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment: production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6

@@ -1,0 +1,109 @@
+name: Helm Validate
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: 'Repository to checkout (local charts / values files)'
+        required: true
+        type: string
+      chart:
+        description: 'Chart to render: a local directory, a repo/chart ref, or an oci:// ref'
+        required: true
+        type: string
+      chart_version:
+        description: 'Chart version to render (remote charts)'
+        required: false
+        type: string
+        default: ''
+      helm_repo_name:
+        description: 'Helm repo name to add before rendering'
+        required: false
+        type: string
+        default: ''
+      helm_repo_url:
+        description: 'Helm repo URL to add before rendering'
+        required: false
+        type: string
+        default: ''
+      values_file:
+        description: 'Values file to render with'
+        required: false
+        type: string
+        default: ''
+      lint:
+        description: 'Run `helm lint --strict` (local charts only)'
+        required: false
+        type: boolean
+        default: false
+      ignore_missing_schemas:
+        description: 'Pass -ignore-missing-schemas to kubeconform (for charts emitting CRs without a public schema)'
+        required: false
+        type: boolean
+        default: false
+      release_name:
+        description: 'Release name used for `helm template`'
+        required: false
+        type: string
+        default: 'validate'
+      working_directory:
+        description: 'Working directory for helm commands'
+        required: false
+        type: string
+        default: '.'
+
+jobs:
+  validate:
+    name: Validate - ${{ inputs.chart }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.repository }}
+
+      - name: Install Helm
+        uses: azure/setup-helm@v5
+        with:
+          version: 'latest'
+
+      - name: Install Kubeconform
+        run: |
+          wget https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+          tar xf kubeconform-linux-amd64.tar.gz
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: Add Helm repository
+        if: ${{ inputs.helm_repo_name != '' && inputs.helm_repo_url != '' }}
+        run: |
+          helm repo add ${{ inputs.helm_repo_name }} ${{ inputs.helm_repo_url }}
+          helm repo update
+
+      - name: Lint Helm chart
+        if: ${{ inputs.lint }}
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          helm lint ${{ inputs.chart }} --strict
+
+      - name: Template and validate
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          TEMPLATE_CMD="helm template ${{ inputs.release_name }} ${{ inputs.chart }}"
+          if [ -n "${{ inputs.chart_version }}" ]; then
+            TEMPLATE_CMD="$TEMPLATE_CMD --version ${{ inputs.chart_version }}"
+          fi
+          if [ -n "${{ inputs.values_file }}" ]; then
+            TEMPLATE_CMD="$TEMPLATE_CMD --values ${{ inputs.values_file }}"
+          fi
+
+          KUBECONFORM_CMD="kubeconform -strict -summary"
+          if [ "${{ inputs.ignore_missing_schemas }}" = "true" ]; then
+            KUBECONFORM_CMD="$KUBECONFORM_CMD -ignore-missing-schemas"
+          fi
+          KUBECONFORM_CMD="$KUBECONFORM_CMD -schema-location default -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'"
+
+          echo "Running: $TEMPLATE_CMD | $KUBECONFORM_CMD"
+          eval "$TEMPLATE_CMD | $KUBECONFORM_CMD"

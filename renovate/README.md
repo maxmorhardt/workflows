@@ -4,8 +4,8 @@ Shared dependency-update preset for every maxmorhardt repo. Each repo has a two-
 
 ## What it does
 
-- **Weekly batch** (Mondays before 6am ET): all minor/patch updates grouped into one PR per repo, **automerged** once CI passes. Majors get individual PRs and wait for manual review.
-- **Security fixes bypass the schedule**: vulnerability PRs (labeled `security`) open immediately.
+- **Rolling batch, no schedule**: all minor/patch updates are grouped into one rolling PR per repo that updates whenever a new update is found (no fixed day/window). Majors get individual PRs.
+- **Security fixes**: vulnerability PRs (labeled `security`) open immediately as `fix(deps):` commits, so release-please cuts a patch release and the fix deploys. Routine bumps stay `chore(deps):` (no release).
 - **Supply-chain guard**: `minimumReleaseAge: 3 days` means brand-new package releases are not picked up until they have aged.
 - **Lockfile maintenance** monthly: refreshes transitive pins.
 - **Go hygiene**: `gomodTidy` runs after every go.mod update.

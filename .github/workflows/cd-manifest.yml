@@ -4,30 +4,25 @@ on:
   workflow_call:
     inputs:
       repository:
-        description: 'Repository to checkout (for local manifest files)'
+        description: 'Repository to checkout'
         required: true
         type: string
       manifests:
-        description: 'Space/newline-separated manifest files or URLs to apply'
+        description: 'Space or newline-separated manifest files to apply'
         required: true
         type: string
       wait_for:
-        description: 'Newline-separated kubectl wait expressions (each appended to `kubectl wait --timeout=<timeout>`)'
+        description: 'Newline-separated kubectl wait expressions'
         required: false
         type: string
         default: ''
       rollout:
-        description: 'Newline-separated `kubectl rollout status` targets to wait on'
-        required: false
-        type: string
-        default: ''
-      post_manifests:
-        description: 'Manifests applied after wait/rollout (e.g. CRs depending on freshly-installed CRDs)'
+        description: 'Newline-separated rollout status targets to wait on'
         required: false
         type: string
         default: ''
       timeout:
-        description: 'Timeout for wait/rollout operations'
+        description: 'Timeout for wait or rollout operations'
         required: false
         type: string
         default: '5m'
@@ -44,6 +39,7 @@ jobs:
     name: Manifest CD
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment: production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -102,18 +98,6 @@ jobs:
             echo "kubectl rollout status $line --timeout=$TIMEOUT"
             kubectl rollout status $line --timeout="$TIMEOUT"
           done <<< "$ROLLOUT"
-
-      - name: Apply post-manifests
-        if: ${{ inputs.post_manifests != '' }}
-        env:
-          POST_MANIFESTS: ${{ inputs.post_manifests }}
-        run: |
-          args=""
-          for m in $POST_MANIFESTS; do
-            args="$args -f $m"
-          done
-          echo "kubectl apply$args"
-          kubectl apply $args
 
       - name: Cleanup kubeconfig
         if: always()

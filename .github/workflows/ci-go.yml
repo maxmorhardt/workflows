@@ -8,12 +8,12 @@ on:
         required: true
         type: string
       swagger:
-        description: 'Whether the project has swagger docs to verify (runs make swag-check)'
+        description: 'Verify swagger docs are up to date'
         required: false
         type: boolean
         default: false
       build:
-        description: 'Whether to cross-compile and upload a binary artifact. Set false when the Dockerfile builds the binary itself (multi-stage build).'
+        description: 'Build go binary before Docker build'
         required: false
         type: boolean
         default: true
