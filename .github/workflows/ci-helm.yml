@@ -72,7 +72,14 @@ jobs:
         run: |
           helm package "$CHART_DIRECTORY"
 
-          CHART_FILE=$(ls "$CHART_NAME"-*.tgz)
+          shopt -s nullglob
+          matches=( "$CHART_NAME"-*.tgz )
+          shopt -u nullglob
+          if [ "${#matches[@]}" -ne 1 ]; then
+            echo "Expected exactly one chart package matching ${CHART_NAME}-*.tgz, found ${#matches[@]}." >&2
+            exit 1
+          fi
+          CHART_FILE="${matches[0]}"
           CHART_VERSION=$(echo "$CHART_FILE" | sed 's/.*-\(.*\)\.tgz/\1/')
 
           echo "chart_file=$CHART_FILE" >> "$GITHUB_OUTPUT"
