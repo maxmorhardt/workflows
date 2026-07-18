@@ -36,6 +36,11 @@ on:
         required: false
         type: boolean
         default: false
+      kubeconform:
+        description: 'Validate rendered output with kubeconform'
+        required: false
+        type: boolean
+        default: true
       ignore_missing_schemas:
         description: 'Pass -ignore-missing-schemas to kubeconform'
         required: false
@@ -71,6 +76,7 @@ jobs:
           version: 'latest'
 
       - name: Install Kubeconform
+        if: ${{ inputs.kubeconform }}
         run: |
           wget https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
           tar xf kubeconform-linux-amd64.tar.gz
@@ -100,6 +106,7 @@ jobs:
           CHART: ${{ inputs.chart }}
           CHART_VERSION: ${{ inputs.chart_version }}
           VALUES_FILE: ${{ inputs.values_file }}
+          KUBECONFORM: ${{ inputs.kubeconform }}
           IGNORE_MISSING_SCHEMAS: ${{ inputs.ignore_missing_schemas }}
         run: |
           template_cmd=(helm template "$RELEASE_NAME" "$CHART")
@@ -108,6 +115,12 @@ jobs:
           fi
           if [ -n "$VALUES_FILE" ]; then
             template_cmd+=(--values "$VALUES_FILE")
+          fi
+
+          if [ "$KUBECONFORM" != "true" ]; then
+            echo "Running: ${template_cmd[*]}"
+            "${template_cmd[@]}" >/dev/null
+            exit 0
           fi
 
           kubeconform_cmd=(kubeconform -strict -summary)
