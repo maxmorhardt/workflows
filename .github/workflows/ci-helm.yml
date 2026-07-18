@@ -56,37 +56,53 @@ jobs:
 
       - name: Login to Helm registry
         if: inputs.push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
-            --username ${{ github.actor }} --password-stdin
+          echo "$GITHUB_TOKEN" | helm registry login ghcr.io \
+            --username "$ACTOR" --password-stdin
 
       - name: Package Helm chart
         id: package
         working-directory: ${{ inputs.working_directory }}
+        env:
+          CHART_DIRECTORY: ${{ inputs.chart_directory }}
+          CHART_NAME: ${{ inputs.chart_name }}
         run: |
-          helm package ${{ inputs.chart_directory }}
+          helm package "$CHART_DIRECTORY"
 
-          CHART_FILE=$(ls ${{ inputs.chart_name }}-*.tgz)
-          CHART_VERSION=$(echo $CHART_FILE | sed 's/.*-\(.*\)\.tgz/\1/')
+          shopt -s nullglob
+          matches=( "$CHART_NAME"-*.tgz )
+          shopt -u nullglob
+          if [ "${#matches[@]}" -ne 1 ]; then
+            echo "Expected exactly one chart package matching ${CHART_NAME}-*.tgz, found ${#matches[@]}." >&2
+            exit 1
+          fi
+          CHART_FILE="${matches[0]}"
+          CHART_VERSION=$(echo "$CHART_FILE" | sed 's/.*-\(.*\)\.tgz/\1/')
 
-          echo "chart_file=$CHART_FILE" >> $GITHUB_OUTPUT
-          echo "chart_version=$CHART_VERSION" >> $GITHUB_OUTPUT
+          echo "chart_file=$CHART_FILE" >> "$GITHUB_OUTPUT"
+          echo "chart_version=$CHART_VERSION" >> "$GITHUB_OUTPUT"
 
-          sha256sum $CHART_FILE > ${CHART_FILE}.sha256
+          sha256sum "$CHART_FILE" > "${CHART_FILE}.sha256"
           echo "Chart: $CHART_FILE"
           echo "Version: $CHART_VERSION"
-          echo "SHA256: $(cat ${CHART_FILE}.sha256)"
+          echo "SHA256: $(cat "${CHART_FILE}.sha256")"
 
       - name: Push Helm chart
         if: inputs.push
         id: push
         working-directory: ${{ inputs.working_directory }}
+        env:
+          CHART_FILE: ${{ steps.package.outputs.chart_file }}
+          REPO_OWNER: ${{ github.repository_owner }}
         run: |
-          PUSH_OUTPUT=$(helm push ${{ steps.package.outputs.chart_file }} oci://ghcr.io/${{ github.repository_owner }}/charts 2>&1)
+          PUSH_OUTPUT=$(helm push "$CHART_FILE" "oci://ghcr.io/$REPO_OWNER/charts" 2>&1)
           echo "$PUSH_OUTPUT"
 
           DIGEST=$(echo "$PUSH_OUTPUT" | grep -oP 'Digest: \K[^ ]+')
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
 
       - name: Upload chart artifact
         uses: actions/upload-artifact@v7
@@ -99,14 +115,21 @@ jobs:
 
       - name: Report chart details
         if: inputs.push
+        env:
+          CHART_NAME: ${{ inputs.chart_name }}
+          CHART_VERSION: ${{ steps.package.outputs.chart_version }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          DIGEST: ${{ steps.push.outputs.digest }}
         run: |
-          echo "### Helm Chart Published" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Chart:** \`${{ inputs.chart_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** \`${{ steps.package.outputs.chart_version }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Registry:** \`oci://ghcr.io/${{ github.repository_owner }}/charts/${{ inputs.chart_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Digest:** \`${{ steps.push.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### Helm Chart Published"
+            echo ""
+            echo "**Chart:** \`$CHART_NAME\`"
+            echo "**Version:** \`$CHART_VERSION\`"
+            echo "**Registry:** \`oci://ghcr.io/$REPO_OWNER/charts/$CHART_NAME\`"
+            echo "**Digest:** \`$DIGEST\`"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Logout from Helm registry
         if: always() && inputs.push
