@@ -27,8 +27,17 @@ on:
         default: false
 
 jobs:
-  ci:
-    name: Helm CI - ${{ inputs.chart_name }}
+  validate:
+    uses: maxmorhardt/workflows/.github/workflows/validate-helm.yml@main
+    with:
+      repository: ${{ inputs.repository }}
+      chart: ${{ inputs.chart_directory }}
+      working_directory: ${{ inputs.working_directory }}
+      lint: true
+
+  package:
+    name: Helm Package - ${{ inputs.chart_name }}
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -44,24 +53,6 @@ jobs:
         uses: azure/setup-helm@v5
         with:
           version: 'latest'
-
-      - name: Install Kubeconform
-        run: |
-          wget https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
-          tar xf kubeconform-linux-amd64.tar.gz
-          sudo mv kubeconform /usr/local/bin/
-
-      - name: Lint Helm chart
-        working-directory: ${{ inputs.working_directory }}
-        run: |
-          helm lint ${{ inputs.chart_directory }} --strict
-
-      - name: Template and validate
-        working-directory: ${{ inputs.working_directory }}
-        run: |
-          helm template test-release ${{ inputs.chart_directory }} | kubeconform -strict -summary \
-            -schema-location default \
-            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 
       - name: Login to Helm registry
         if: inputs.push

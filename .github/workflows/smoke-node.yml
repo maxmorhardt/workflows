@@ -4,19 +4,19 @@ on:
   workflow_call:
     inputs:
       repository:
-        description: 'Repository containing the Playwright smoke tests'
+        description: 'Repository containing the smoke tests'
         required: true
         type: string
       release_name:
-        description: 'Helm release name (for rollback on failure)'
+        description: 'Helm release name'
         required: true
         type: string
       namespace:
-        description: 'Kubernetes namespace (for rollback on failure)'
+        description: 'Kubernetes namespace'
         required: true
         type: string
       smoke_url:
-        description: 'Base URL the smoke tests run against (exposed as PLAYWRIGHT_BASE_URL)'
+        description: 'Base URL the smoke tests run against'
         required: true
         type: string
       timeout:

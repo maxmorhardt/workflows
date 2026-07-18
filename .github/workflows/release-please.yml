@@ -15,7 +15,7 @@ on:
         default: .release-please-manifest.json
     secrets:
       release_please_token:
-        description: 'PAT/App token so the created tag and release trigger downstream CI/CD'
+        description: 'PAT or App token'
         required: true
 
 jobs:
