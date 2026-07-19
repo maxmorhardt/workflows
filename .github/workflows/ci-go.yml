@@ -72,13 +72,17 @@ jobs:
           path: coverage.html
           retention-days: 7
 
-      - name: Build Go binary
+      - name: Build Go binaries
         if: ${{ inputs.build }}
         env:
           CGO_ENABLED: 0
           GOOS: linux
-          GOARCH: arm64
-        run: make build BUILD_FLAGS="-a" LDFLAGS="-s -w"
+        run: |
+          for arch in amd64 arm64; do
+            GOARCH="$arch" make build \
+              OUT="bin/$arch/${{ github.event.repository.name }}" \
+              BUILD_FLAGS="-a" LDFLAGS="-s -w"
+          done
 
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@v0.36.0
@@ -89,7 +93,7 @@ jobs:
           exit-code: '1'
           severity: 'HIGH,CRITICAL'
 
-      - name: Upload build artifact
+      - name: Upload build artifacts
         if: ${{ inputs.build }}
         uses: actions/upload-artifact@v7
         with:
