@@ -1,0 +1,93 @@
+name: Argo CD
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        description: 'Argo CD Application name'
+        required: true
+        type: string
+      image_tag:
+        description: 'Image tag to deploy'
+        required: true
+        type: string
+      gitops_repository:
+        description: 'Repository holding the Application manifests'
+        required: false
+        type: string
+        default: 'maxmorhardt/k8s'
+      gitops_path:
+        description: 'Directory holding the Application manifests'
+        required: false
+        type: string
+        default: 'argocd/apps'
+    secrets:
+      gitops_token:
+        required: true
+
+jobs:
+  cd:
+    name: Argo CD - ${{ inputs.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout gitops repository
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.gitops_repository }}
+          token: ${{ secrets.gitops_token }}
+
+      - name: Bump image tag
+        env:
+          APP: ${{ inputs.app }}
+          GITOPS_PATH: ${{ inputs.gitops_path }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          file="$GITOPS_PATH/$APP.yaml"
+          if [ ! -f "$file" ]; then
+            echo "no Application manifest at $file"
+            exit 1
+          fi
+
+          previous=$(yq '.spec.source.helm.parameters[] | select(.name == "image.tag") | .value' "$file")
+          if [ -z "$previous" ] || [ "$previous" = "null" ]; then
+            echo "$file has no image.tag parameter to bump"
+            exit 1
+          fi
+
+          IMAGE_TAG="$IMAGE_TAG" yq -i \
+            '(.spec.source.helm.parameters[] | select(.name == "image.tag") | .value) = strenv(IMAGE_TAG)' \
+            "$file"
+
+          echo "$APP: $previous -> $IMAGE_TAG"
+
+      - name: Commit and push
+        env:
+          APP: ${{ inputs.app }}
+          GITOPS_PATH: ${{ inputs.gitops_path }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          if git diff --quiet; then
+            echo "$APP is already pinned to $IMAGE_TAG"
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add "$GITOPS_PATH/$APP.yaml"
+          git commit -m "chore($APP): deploy $IMAGE_TAG"
+
+          # a concurrent release of a sibling app may have landed since checkout
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "push rejected, rebasing (attempt $attempt)"
+            git pull --rebase
+          done
+
+          echo "could not push after 3 attempts"
+          exit 1
