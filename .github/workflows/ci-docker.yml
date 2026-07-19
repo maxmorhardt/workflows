@@ -25,7 +25,7 @@ on:
         description: 'Path where the artifact should be downloaded'
         required: false
         type: string
-        default: '.'
+        default: 'bin'
       push:
         description: 'Push image to Docker Hub'
         required: false
