@@ -8,9 +8,15 @@ on:
         required: true
         type: string
       image_tag:
-        description: 'Image tag to deploy'
-        required: true
+        description: 'Image tag to deploy (blank to leave unchanged)'
+        required: false
         type: string
+        default: ''
+      chart_version:
+        description: 'Chart version to deploy (blank to leave unchanged)'
+        required: false
+        type: string
+        default: ''
       gitops_repository:
         description: 'Repository holding the Application manifests'
         required: false
@@ -40,47 +46,84 @@ jobs:
           repository: ${{ inputs.gitops_repository }}
           token: ${{ secrets.gitops_token }}
 
-      - name: Bump image tag
+      - name: Bump Application
+        id: bump
         env:
           APP: ${{ inputs.app }}
           GITOPS_PATH: ${{ inputs.gitops_path }}
           IMAGE_TAG: ${{ inputs.image_tag }}
+          CHART_VERSION: ${{ inputs.chart_version }}
         run: |
+          if [ -z "$IMAGE_TAG" ] && [ -z "$CHART_VERSION" ]; then
+            echo "nothing to do: pass image_tag, chart_version, or both"
+            exit 1
+          fi
+
           file="$GITOPS_PATH/$APP.yaml"
           if [ ! -f "$file" ]; then
             echo "no Application manifest at $file"
             exit 1
           fi
 
-          previous=$(yq '.spec.source.helm.parameters[] | select(.name == "image.tag") | .value' "$file")
-          if [ -z "$previous" ] || [ "$previous" = "null" ]; then
-            echo "$file has no image.tag parameter to bump"
-            exit 1
+          summary=""
+
+          if [ -n "$IMAGE_TAG" ]; then
+            previous=$(yq '.spec.source.helm.parameters[] | select(.name == "image.tag") | .value' "$file")
+            if [ -z "$previous" ] || [ "$previous" = "null" ]; then
+              echo "$file has no image.tag parameter to bump"
+              exit 1
+            fi
+
+            IMAGE_TAG="$IMAGE_TAG" yq -i \
+              '(.spec.source.helm.parameters[] | select(.name == "image.tag") | .value) = strenv(IMAGE_TAG)' \
+              "$file"
+
+            echo "image.tag: $previous -> $IMAGE_TAG"
+            summary="$IMAGE_TAG"
           fi
 
-          IMAGE_TAG="$IMAGE_TAG" yq -i \
-            '(.spec.source.helm.parameters[] | select(.name == "image.tag") | .value) = strenv(IMAGE_TAG)' \
-            "$file"
+          if [ -n "$CHART_VERSION" ]; then
+            if [ "$(yq '.spec.source.chart // ""' "$file")" = "" ]; then
+              echo "$file is not a chart source; refusing to write a chart version to targetRevision"
+              exit 1
+            fi
 
-          echo "$APP: $previous -> $IMAGE_TAG"
+            previous=$(yq '.spec.source.targetRevision' "$file")
+
+            CHART_VERSION="$CHART_VERSION" yq -i \
+              '.spec.source.targetRevision = strenv(CHART_VERSION)' \
+              "$file"
+
+            echo "targetRevision: $previous -> $CHART_VERSION"
+            if [ -n "$summary" ]; then
+              summary="$summary (chart $CHART_VERSION)"
+            else
+              summary="chart $CHART_VERSION"
+            fi
+          fi
+
+          {
+            echo "summary<<CD_ARGOCD_SUMMARY"
+            echo "$summary"
+            echo "CD_ARGOCD_SUMMARY"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Commit and push
         env:
           APP: ${{ inputs.app }}
           GITOPS_PATH: ${{ inputs.gitops_path }}
-          IMAGE_TAG: ${{ inputs.image_tag }}
+          SUMMARY: ${{ steps.bump.outputs.summary }}
         run: |
           if git diff --quiet; then
-            echo "$APP is already pinned to $IMAGE_TAG"
+            echo "$APP is already pinned to $SUMMARY"
             exit 0
           fi
 
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add "$GITOPS_PATH/$APP.yaml"
-          git commit -m "chore($APP): deploy $IMAGE_TAG"
+          git commit -m "chore($APP): deploy $SUMMARY"
 
-          # a concurrent release of a sibling app may have landed since checkout
           for attempt in 1 2 3; do
             if git push; then
               exit 0
