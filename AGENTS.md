@@ -19,6 +19,8 @@
   - `ci-helm.yml` - validates, packages, and optionally pushes a chart as an OCI artifact to `ghcr.io/<owner>/charts`.
   - `validate-helm.yml` - renders a local or remote OCI chart, optional `helm lint --strict`, optional kubeconform on the output.
   - `validate-manifests.yml` - kubeconform over raw manifests (files, dirs, globs) against the default and CRD schema catalogs.
+  - `validate-terraform.yml` - `fmt -check`, init, validate, and plan for one root module. `fail_on_diff` turns a non-empty plan into a failure, which is how scheduled drift detection works.
+  - `cd-terraform.yml` - plans to a file then applies that exact file, so the apply cannot recompute into something different from what was planned. Human review of the diff happens on the pull request plan, not here.
   - `release-please.yml` - maintains release PRs and tags from conventional commits.
   - `pr-title.yml` - enforces a semantic PR title.
   - `cd-argocd.yml` - GitOps deploy. Bumps `image.tag` and/or chart `targetRevision` in the `Application` manifest in `maxmorhardt/k8s`, commits, pushes with rebase-and-retry.
@@ -46,7 +48,8 @@
 - One workflow per file, named `<kind>-<target>.yml`: `ci-` for build and test, `validate-` for check-only, `cd-` for deploy, plus the two release and PR helpers.
 - Inputs are `snake_case` (`app_name`, `chart_directory`, `image_tag`, `working_directory`). Follow existing names rather than introducing synonyms.
 - Pin third-party actions to a major version tag (`actions/checkout@v7`, `aquasecurity/trivy-action@v0.36.0`) so Renovate can bump them.
-- Current secrets: `docker_username` and `docker_password` (Docker CI push), `release_please_token` (release-please), `gitops_token` (Argo CD deploy). Helm CI and PR Title use the built-in `GITHUB_TOKEN`.
+- Current secrets: `docker_username` and `docker_password` (Docker CI push), `release_please_token` (release-please), `gitops_token` (Argo CD deploy), and `aws_access_key_id` / `aws_secret_access_key` / `cloudflare_api_token` / `repo_admin_token` / `tf_vars` (Terraform). Helm CI and PR Title use the built-in `GITHUB_TOKEN`.
+- The Terraform workflows need AWS credentials for every module, not just `aws/`, because all state lives in the same S3 backend.
 - Bumping Go 1.26 or Node 24 is a fleet-wide change. Check that consumers' `go.mod` and `package.json` engines agree first.
 - Renovate policy changes go in `renovate/default.json`. Per-repo exceptions belong in that repo's `renovate.json` as a `packageRules` entry. Never special-case a single repo in the shared preset.
 - Keep `README.md` in sync. It documents each workflow's inputs and is what people read before wiring one up.

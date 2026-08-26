@@ -1,0 +1,98 @@
+name: Terraform Apply
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: 'Repository to checkout'
+        required: true
+        type: string
+      working_directory:
+        description: 'Root module directory to run in'
+        required: true
+        type: string
+      terraform_version:
+        description: 'Terraform version'
+        required: false
+        type: string
+        default: '1.15.9'
+      aws_region:
+        description: 'Region holding the S3 state backend'
+        required: false
+        type: string
+        default: 'us-east-1'
+    secrets:
+      aws_access_key_id:
+        description: 'Every module needs AWS credentials for the S3 state backend, not just aws/'
+        required: true
+      aws_secret_access_key:
+        required: true
+      cloudflare_api_token:
+        required: false
+      repo_admin_token:
+        required: false
+      tf_vars:
+        description: 'tfvars content written to ci.auto.tfvars before applying'
+        required: false
+
+jobs:
+  apply:
+    name: Terraform Apply - ${{ inputs.working_directory }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.repository }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-access-key-id: ${{ secrets.aws_access_key_id }}
+          aws-secret-access-key: ${{ secrets.aws_secret_access_key }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+          terraform_wrapper: false
+
+      - name: Write variables
+        env:
+          TF_VARS: ${{ secrets.tf_vars }}
+        run: |
+          if [ -n "$TF_VARS" ]; then
+            printf '%s\n' "$TF_VARS" > ci.auto.tfvars
+          fi
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform plan
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.cloudflare_api_token }}
+          GITHUB_TOKEN: ${{ secrets.repo_admin_token }}
+        run: terraform plan -input=false -no-color -out=tfplan
+
+      - name: Terraform apply
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.cloudflare_api_token }}
+          GITHUB_TOKEN: ${{ secrets.repo_admin_token }}
+          WORKDIR: ${{ inputs.working_directory }}
+        run: |
+          set -o pipefail
+          terraform apply -input=false -no-color tfplan | tee apply.txt
+          {
+            echo "### Terraform apply - \`$WORKDIR\`"
+            echo '```'
+            tail -c 60000 apply.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

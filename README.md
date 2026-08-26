@@ -23,6 +23,9 @@ Secrets are passed per workflow (see each workflow's `secrets:` block), not inhe
 - `docker_username` / `docker_password` – Docker Hub login (Docker CI, when `push: true`).
 - `release_please_token` – PAT or App token for release-please (Release Please).
 - `gitops_token` – token with write access to the gitops repo (Argo CD).
+- `aws_access_key_id` / `aws_secret_access_key` – AWS credentials for the Terraform workflows. Required by every module, since all state lives in one S3 backend.
+- `cloudflare_api_token` / `repo_admin_token` – provider credentials for the Terraform Cloudflare and GitHub modules.
+- `tf_vars` – tfvars content written to `ci.auto.tfvars` before plan or apply, for values kept out of git.
 
 The Helm CI and PR Title workflows use the built-in `GITHUB_TOKEN`.
 
@@ -79,6 +82,7 @@ jobs:
 
 - **Helm Validate** (`validate-helm.yml`) – renders a local or remote/OCI chart with `helm template`, optional `helm lint --strict`, and optional kubeconform validation of the rendered output.
 - **Manifest Validate** (`validate-manifests.yml`) – validates raw Kubernetes manifests (files, dirs, or globs) with kubeconform against the default and CRD schema catalogs.
+- **Terraform Validate** (`validate-terraform.yml`) – `fmt -check`, init, validate, and plan for one root module (`working_directory`), with the plan posted to the job summary. `fail_on_diff: true` turns a non-empty plan into a failure, which is how scheduled drift detection works.
 
 ### Release & PR
 
@@ -88,3 +92,4 @@ jobs:
 ### Deployment
 
 - **Argo CD** (`cd-argocd.yml`) – GitOps deploy: bumps `image.tag` and/or the chart `targetRevision` in the Application manifest in the gitops repo, commits, and pushes (rebase-and-retry on conflict). Argo CD applies the change to the cluster.
+- **Terraform Apply** (`cd-terraform.yml`) – plans one root module (`working_directory`) to a file and applies that exact file, so the apply cannot recompute into a different change than the one planned. The diff is reviewed on the pull request, not at apply time. Runs in the `production` environment.
