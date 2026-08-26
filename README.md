@@ -92,4 +92,4 @@ jobs:
 ### Deployment
 
 - **Argo CD** (`cd-argocd.yml`) – GitOps deploy: bumps `image.tag` and/or the chart `targetRevision` in the Application manifest in the gitops repo, commits, and pushes (rebase-and-retry on conflict). Argo CD applies the change to the cluster.
-- **Terraform Apply** (`cd-terraform.yml`) – plans one root module (`working_directory`) to a file and applies that file, so the apply cannot act on a diff nobody saw. Runs in the `production` environment.
+- **Terraform Apply** (`cd-terraform.yml`) – plans one root module (`working_directory`) to a file and applies that exact file, so the apply cannot recompute into a different change than the one planned. The diff is reviewed on the pull request, not at apply time. Runs in the `production` environment.

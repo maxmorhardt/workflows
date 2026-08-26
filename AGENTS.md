@@ -20,7 +20,7 @@
   - `validate-helm.yml` - renders a local or remote OCI chart, optional `helm lint --strict`, optional kubeconform on the output.
   - `validate-manifests.yml` - kubeconform over raw manifests (files, dirs, globs) against the default and CRD schema catalogs.
   - `validate-terraform.yml` - `fmt -check`, init, validate, and plan for one root module. `fail_on_diff` turns a non-empty plan into a failure, which is how scheduled drift detection works.
-  - `cd-terraform.yml` - plans to a file then applies that file, so the apply can never act on a diff nobody saw.
+  - `cd-terraform.yml` - plans to a file then applies that exact file, so the apply cannot recompute into something different from what was planned. Human review of the diff happens on the pull request plan, not here.
   - `release-please.yml` - maintains release PRs and tags from conventional commits.
   - `pr-title.yml` - enforces a semantic PR title.
   - `cd-argocd.yml` - GitOps deploy. Bumps `image.tag` and/or chart `targetRevision` in the `Application` manifest in `maxmorhardt/k8s`, commits, pushes with rebase-and-retry.
