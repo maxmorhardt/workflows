@@ -23,6 +23,9 @@ Secrets are passed per workflow (see each workflow's `secrets:` block), not inhe
 - `docker_username` / `docker_password` – Docker Hub login (Docker CI, when `push: true`).
 - `release_please_token` – PAT or App token for release-please (Release Please).
 - `gitops_token` – token with write access to the gitops repo (Argo CD).
+- `aws_access_key_id` / `aws_secret_access_key` – AWS credentials for the Terraform workflows. Required by every module, since all state lives in one S3 backend.
+- `cloudflare_api_token` / `repo_admin_token` – provider credentials for the Terraform Cloudflare and GitHub modules.
+- `tf_vars` – tfvars content written to `ci.auto.tfvars` before plan or apply, for values kept out of git.
 
 The Helm CI and PR Title workflows use the built-in `GITHUB_TOKEN`.
 
