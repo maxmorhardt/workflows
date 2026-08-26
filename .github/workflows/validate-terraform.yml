@@ -97,7 +97,9 @@ jobs:
           code=$?
           set -e
 
-          cat plan.txt
+          if [ "$code" -eq 1 ]; then
+            cat plan.txt
+          fi
 
           {
             echo "### Terraform plan - \`${{ inputs.working_directory }}\`"

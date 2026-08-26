@@ -87,6 +87,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.cloudflare_api_token }}
           GITHUB_TOKEN: ${{ secrets.repo_admin_token }}
         run: |
+          set -o pipefail
           terraform apply -input=false -no-color tfplan | tee apply.txt
           {
             echo "### Terraform apply - \`${{ inputs.working_directory }}\`"

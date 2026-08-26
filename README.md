@@ -82,6 +82,7 @@ jobs:
 
 - **Helm Validate** (`validate-helm.yml`) – renders a local or remote/OCI chart with `helm template`, optional `helm lint --strict`, and optional kubeconform validation of the rendered output.
 - **Manifest Validate** (`validate-manifests.yml`) – validates raw Kubernetes manifests (files, dirs, or globs) with kubeconform against the default and CRD schema catalogs.
+- **Terraform Validate** (`validate-terraform.yml`) – `fmt -check`, init, validate, and plan for one root module (`working_directory`), with the plan posted to the job summary. `fail_on_diff: true` turns a non-empty plan into a failure, which is how scheduled drift detection works.
 
 ### Release & PR
 
@@ -91,3 +92,4 @@ jobs:
 ### Deployment
 
 - **Argo CD** (`cd-argocd.yml`) – GitOps deploy: bumps `image.tag` and/or the chart `targetRevision` in the Application manifest in the gitops repo, commits, and pushes (rebase-and-retry on conflict). Argo CD applies the change to the cluster.
+- **Terraform Apply** (`cd-terraform.yml`) – plans one root module (`working_directory`) to a file and applies that file, so the apply cannot act on a diff nobody saw. Runs in the `production` environment.
