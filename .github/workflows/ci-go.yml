@@ -17,6 +17,16 @@ on:
         required: false
         type: boolean
         default: true
+      working_directory:
+        description: 'Directory holding go.mod and the Makefile, for modules inside a monorepo'
+        required: false
+        type: string
+        default: '.'
+      binary_name:
+        description: 'Name of the built binary and its artifact (defaults to the repository name)'
+        required: false
+        type: string
+        default: ''
 
 env:
   GO_VERSION: '1.26'
@@ -28,6 +38,11 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    env:
+      BINARY_NAME: ${{ inputs.binary_name || github.event.repository.name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -39,6 +54,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+          cache-dependency-path: ${{ inputs.working_directory }}/go.sum
 
       - name: Verify dependencies
         run: make verify
@@ -50,6 +66,7 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
+          working-directory: ${{ inputs.working_directory }}
 
       - name: Check swagger docs are up to date
         if: ${{ inputs.swagger }}
@@ -69,7 +86,7 @@ jobs:
         if: always()
         with:
           name: go-coverage-report
-          path: coverage.html
+          path: ${{ inputs.working_directory }}/coverage.html
           retention-days: 7
 
       - name: Build Go binaries
@@ -80,7 +97,7 @@ jobs:
         run: |
           for arch in amd64 arm64; do
             GOARCH="$arch" make build \
-              OUT="bin/$arch/${{ github.event.repository.name }}" \
+              OUT="bin/$arch/$BINARY_NAME" \
               BUILD_FLAGS="-a" LDFLAGS="-s -w"
           done
 
@@ -88,7 +105,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: ${{ inputs.working_directory }}
           format: 'table'
           exit-code: '1'
           severity: 'HIGH,CRITICAL'
@@ -97,6 +114,6 @@ jobs:
         if: ${{ inputs.build }}
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ github.event.repository.name }}
-          path: bin/
+          name: ${{ env.BINARY_NAME }}
+          path: ${{ inputs.working_directory }}/bin/
           retention-days: 7
