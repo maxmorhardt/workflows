@@ -35,6 +35,8 @@ jobs:
       working_directory: ${{ inputs.working_directory }}
       lint: true
       kubeconform: true
+      # app charts require image.tag, which argo cd sets at deploy time; any value renders them
+      set_values: image.tag=0.0.0-validate
 
   package:
     name: Helm Package - ${{ inputs.chart_name }}

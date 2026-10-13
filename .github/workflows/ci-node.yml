@@ -11,6 +11,16 @@ on:
         description: 'Application name'
         required: true
         type: string
+      working_directory:
+        description: 'Directory holding package.json, for apps inside a monorepo'
+        required: false
+        type: string
+        default: '.'
+      artifact_suffix:
+        description: 'Suffix appended to the dist and coverage artifact names, so several apps can run in one workflow'
+        required: false
+        type: string
+        default: ''
 
 env:
   NODE_VERSION: '24'
@@ -22,6 +32,9 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -30,12 +43,15 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
+        with:
+          package_json_file: ${{ inputs.working_directory }}/package.json
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
+          cache-dependency-path: ${{ inputs.working_directory }}/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -56,8 +72,8 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: test-coverage-report
-          path: coverage/
+          name: test-coverage-report${{ inputs.artifact_suffix }}
+          path: ${{ inputs.working_directory }}/coverage/
           retention-days: 7
 
       - name: Build application
@@ -67,7 +83,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: ${{ inputs.working_directory }}
           format: 'table'
           exit-code: '1'
           severity: 'HIGH,CRITICAL'
@@ -75,6 +91,6 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: dist
-          path: dist/
+          name: dist${{ inputs.artifact_suffix }}
+          path: ${{ inputs.working_directory }}/dist/
           retention-days: 7

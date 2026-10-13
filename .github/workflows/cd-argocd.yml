@@ -21,7 +21,7 @@ on:
         description: 'Repository holding the Application manifests'
         required: false
         type: string
-        default: 'maxmorhardt/k8s'
+        default: 'maxmorhardt/infra'
       gitops_path:
         description: 'Directory holding the Application manifests'
         required: false

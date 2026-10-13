@@ -31,6 +31,11 @@ on:
         required: false
         type: string
         default: ''
+      set_values:
+        description: 'Comma-separated key=value pairs passed with --set, for values a chart requires but has no default for'
+        required: false
+        type: string
+        default: ''
       lint:
         description: 'Run `helm lint --strict` (local charts only)'
         required: false
@@ -106,15 +111,22 @@ jobs:
           CHART: ${{ inputs.chart }}
           CHART_VERSION: ${{ inputs.chart_version }}
           VALUES_FILE: ${{ inputs.values_file }}
+          SET_VALUES: ${{ inputs.set_values }}
           KUBECONFORM: ${{ inputs.kubeconform }}
           IGNORE_MISSING_SCHEMAS: ${{ inputs.ignore_missing_schemas }}
         run: |
+          # without pipefail a chart that fails to render would hand kubeconform nothing and pass
+          set -o pipefail
+
           template_cmd=(helm template "$RELEASE_NAME" "$CHART")
           if [ -n "$CHART_VERSION" ]; then
             template_cmd+=(--version "$CHART_VERSION")
           fi
           if [ -n "$VALUES_FILE" ]; then
             template_cmd+=(--values "$VALUES_FILE")
+          fi
+          if [ -n "$SET_VALUES" ]; then
+            template_cmd+=(--set "$SET_VALUES")
           fi
 
           if [ "$KUBECONFORM" != "true" ]; then

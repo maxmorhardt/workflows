@@ -14,7 +14,7 @@ Reusable GitHub Actions workflows for CI/CD.
 
 This repository contains reusable GitHub Actions workflows that can be called from other repositories to standardize CI/CD. They cover building and scanning Docker images, testing Go and Node apps, packaging Helm charts, validating manifests, cutting releases, and deploying.
 
-Deployment is GitOps via **Argo CD**: workflows here don't apply anything to a cluster directly. The `cd-argocd` workflow bumps an image tag or chart version in the gitops repo (`maxmorhardt/k8s`) and Argo CD reconciles it. There is no `kubectl`/`helm upgrade` step, no cluster credentials, and no Tailscale in this repo.
+Deployment is GitOps via **Argo CD**: workflows here don't apply anything to a cluster directly. The `cd-argocd` workflow bumps an image tag or chart version in the gitops repo (`maxmorhardt/infra`) and Argo CD reconciles it. There is no `kubectl`/`helm upgrade` step, no cluster credentials, and no Tailscale in this repo.
 
 ## Setup
 
@@ -73,9 +73,9 @@ jobs:
 
 ### CI
 
-- **Go CI** (`ci-go.yml`) – `go vet`, golangci-lint, optional swagger check, unit + integration tests with the coverage gate (race enabled), Trivy filesystem scan, and optional cross-compiled (`amd64`/`arm64`) binary build. Go 1.26.
-- **Node CI** (`ci-node.yml`) – pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, and Trivy filesystem scan. Node 24.
-- **Docker CI** (`ci-docker.yml`) – Buildx image build, Trivy image scan (fails on HIGH/CRITICAL), and optional multi-arch (`amd64`/`arm64`) push to Docker Hub with `latest`, provenance, and SBOM. Optionally consumes a prebuilt binary artifact.
+- **Go CI** (`ci-go.yml`) – `go vet`, golangci-lint, optional swagger check, unit + integration tests with the coverage gate (race enabled), Trivy filesystem scan, and optional cross-compiled (`amd64`/`arm64`) binary build. Go 1.26. `working_directory` and `binary_name` let it run against a module inside a monorepo.
+- **Node CI** (`ci-node.yml`) – pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, and Trivy filesystem scan. Node 24. `working_directory` points it at an app inside a monorepo.
+- **Docker CI** (`ci-docker.yml`) – Buildx image build, Trivy image scan (fails on HIGH/CRITICAL), and optional multi-arch (`amd64`/`arm64`) push to Docker Hub with `latest`, provenance, and SBOM. Optionally consumes a prebuilt binary artifact. `context`, `dockerfile`, and `build_args` support monorepos and one Dockerfile building several images.
 - **Helm CI** (`ci-helm.yml`) – validates (via Helm Validate), packages the chart, and optionally pushes it as an OCI artifact to `ghcr.io/<owner>/charts`.
 
 ### Validation
