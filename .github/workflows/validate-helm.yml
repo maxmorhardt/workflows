@@ -115,7 +115,6 @@ jobs:
           KUBECONFORM: ${{ inputs.kubeconform }}
           IGNORE_MISSING_SCHEMAS: ${{ inputs.ignore_missing_schemas }}
         run: |
-          # without pipefail a chart that fails to render would hand kubeconform nothing and pass
           set -o pipefail
 
           template_cmd=(helm template "$RELEASE_NAME" "$CHART")
