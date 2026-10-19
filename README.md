@@ -94,4 +94,5 @@ jobs:
 ### Deployment
 
 - **Argo CD** (`cd-argocd.yml`) – GitOps deploy: bumps `image.tag` and/or the chart `targetRevision` in `clusters/<environment>/apps/<app>.yaml` in the gitops repo, commits, and pushes (rebase-and-retry on conflict). `environment: prod` runs in the `production` environment, so it waits for approval; `dev` runs in `development`. Argo CD applies the change to the cluster.
+- **Promote image** (`cd-promote.yml`) – waits for an image tag already built and tested (e.g. dev's `sha-<commit>`), then retags that exact multi-arch manifest as the release version (and `latest`) without rebuilding, so prod runs the bytes dev ran.
 - **Terraform Apply** (`cd-terraform.yml`) – plans one root module (`working_directory`) to a file and applies that exact file, so the apply cannot recompute into a different change than the one planned. The diff is reviewed on the pull request, not at apply time. Runs in the `production` environment.

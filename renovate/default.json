@@ -46,6 +46,21 @@
         "dockerfile"
       ],
       "semanticCommitType": "fix"
+    },
+    {
+      "description": "keep the go directive current and move it with the golang base image in one pr",
+      "matchDatasources": [
+        "golang-version"
+      ],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "go toolchain bumps get their own pr",
+      "matchPackageNames": [
+        "go",
+        "golang"
+      ],
+      "groupName": "go"
     }
   ]
 }
