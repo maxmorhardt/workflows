@@ -18,6 +18,7 @@ on:
         default: '.'
 
 env:
+  # renovate: datasource=node-version depName=node
   NODE_VERSION: '24'
 
 jobs:
