@@ -4,7 +4,8 @@
   "extends": [
     "config:recommended",
     ":semanticCommits",
-    ":dependencyDashboard"
+    ":dependencyDashboard",
+    "helpers:pinGitHubActionDigests"
   ],
   "timezone": "America/New_York",
   "labels": [
@@ -61,6 +62,16 @@
         "golang"
       ],
       "groupName": "go"
+    },
+    {
+      "description": "our own reusable workflows follow main, so a push there is the release",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "maxmorhardt/workflows"
+      ],
+      "pinDigests": false
     }
   ]
 }

@@ -72,6 +72,13 @@ jobs:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.artifact_path }}
 
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.5.0
+        with:
+          dockerfile: ${{ inputs.dockerfile || format('{0}/Dockerfile', inputs.context) }}
+          failure-threshold: warning
+          ignore: DL3018
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
 
