@@ -75,9 +75,9 @@ jobs:
 
 ### CI
 
-- **Go CI** (`ci-go.yml`) – `go vet`, golangci-lint, optional swagger check, unit + integration tests with the coverage gate (race enabled), Trivy filesystem scan, and optional cross-compiled (`amd64`/`arm64`) binary build. Go version from the module's `go.mod`. `working_directory` and `binary_name` let it run against a module inside a monorepo.
+- **Go CI** (`ci-go.yml`) – `go vet`, golangci-lint, optional swagger check, unit + integration tests with the coverage gate (race enabled), and Trivy filesystem scan. Go version from the module's `go.mod`. `working_directory` points it at a module inside a monorepo. Images compile Go in their own multi-stage Dockerfile, so it builds no binaries.
 - **Node CI** (`ci-node.yml`) – pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, and Trivy filesystem scan. Node 24. `working_directory` points it at an app inside a monorepo.
-- **Docker CI** (`ci-docker.yml`) – Buildx image build, Trivy image scan (fails on HIGH/CRITICAL), and optional multi-arch (`amd64`/`arm64`) push to Docker Hub as the given version and `latest`, with provenance and SBOM. Optionally consumes a prebuilt binary artifact. `context`, `dockerfile`, and `build_args` support monorepos and one Dockerfile building several images.
+- **Docker CI** (`ci-docker.yml`) – Buildx image build, Trivy image scan (fails on HIGH/CRITICAL), and optional multi-arch (`amd64`/`arm64`) push to Docker Hub as the given version and `latest`, with provenance and SBOM. Optionally consumes a build artifact, such as a Node app's `dist/`. `context`, `dockerfile`, and `build_args` support monorepos and one Dockerfile building several images.
 - **Helm CI** (`ci-helm.yml`) – validates (via Helm Validate), packages the chart (optionally as a given `version`), and optionally pushes it as an OCI artifact to `ghcr.io/<owner>/charts`.
 
 ### Validation

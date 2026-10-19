@@ -13,7 +13,7 @@
 ## Repository Layout
 
 - `.github/workflows/` - the reusable workflows. Every one is `on: workflow_call`.
-  - `ci-go.yml` - `go vet`, golangci-lint, optional swagger check, unit and integration tests with the coverage gate (race on), Trivy filesystem scan, optional cross-compiled `amd64`/`arm64` binary. Go version from the module's `go.mod`.
+  - `ci-go.yml` - `go vet`, golangci-lint, optional swagger check, unit and integration tests with the coverage gate (race on), Trivy filesystem scan. Go version from the module's `go.mod`. No binary build: Dockerfiles compile Go in a multi-stage build.
   - `ci-node.yml` - pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, Trivy filesystem scan. Node 24.
   - `ci-docker.yml` - Buildx build, Trivy image scan failing on HIGH and CRITICAL, optional multi-arch push to Docker Hub with `latest`, provenance, and SBOM.
   - `ci-helm.yml` - validates, packages (optionally overriding the version), and optionally pushes a chart as an OCI artifact to `ghcr.io/<owner>/charts`.
