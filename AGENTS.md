@@ -13,7 +13,7 @@
 ## Repository Layout
 
 - `.github/workflows/` - the reusable workflows (`on: workflow_call`), plus `ci.yml`, this repo's own PR check: actionlint (with shellcheck on every `run:`) and the Renovate config validator.
-  - `ci-go.yml` - `go vet`, golangci-lint, the swagger check when the Makefile has `swag-check`, unit and integration tests with the coverage gate (race on), Trivy filesystem scan. Go version from the module's `go.mod`. No binary build: Dockerfiles compile Go in a multi-stage build.
+  - `ci-go.yml` - `go vet`, golangci-lint, the swagger check when the Makefile has `swag-check`, unit and integration tests with the coverage gate (race on), Trivy filesystem scan. Go version from the nearest `go.mod` at or above `working_directory`. No binary build: Dockerfiles compile Go in a multi-stage build.
   - `ci-node.yml` - pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, Trivy filesystem scan. Node 24.
   - `ci-docker.yml` - hadolint on the Dockerfile, then one Buildx build to an OCI archive (provenance, SBOM), Trivy scan of each platform in it failing on HIGH and CRITICAL, then a push of those exact bytes with `latest`.
   - `ci-helm.yml` - validates, then packages and pushes a chart to `oci://ghcr.io/<owner>/charts`, named and versioned from `Chart.yaml` unless `version` overrides it.
