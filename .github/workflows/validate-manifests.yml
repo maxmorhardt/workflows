@@ -39,6 +39,7 @@ jobs:
             -schema-location default
             -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json')
 
+          # shellcheck disable=SC2206 # split on whitespace and expand globs on purpose
           files=($MANIFESTS)
           echo "Running: ${cmd[*]} ${files[*]}"
           "${cmd[@]}" "${files[@]}"
