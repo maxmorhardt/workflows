@@ -18,7 +18,7 @@ on:
         type: string
         default: ''
       revision:
-        description: 'Git ref the Application takes its chart from'
+        description: 'Chart revision: a git ref for charts read from git, or the chart version for OCI charts'
         required: false
         type: string
         default: ''
