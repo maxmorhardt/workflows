@@ -20,6 +20,11 @@ on:
         required: false
         type: string
         default: '.'
+      version:
+        description: 'Chart version to package as, overriding Chart.yaml (e.g. 1.4.0 or 0.0.0-sha-1a2b3c4)'
+        required: false
+        type: string
+        default: ''
       push:
         description: 'Push the chart to the registry'
         required: false
@@ -71,8 +76,9 @@ jobs:
         env:
           CHART_DIRECTORY: ${{ inputs.chart_directory }}
           CHART_NAME: ${{ inputs.chart_name }}
+          VERSION: ${{ inputs.version }}
         run: |
-          helm package "$CHART_DIRECTORY"
+          helm package "$CHART_DIRECTORY" ${VERSION:+--version "$VERSION"}
 
           shopt -s nullglob
           matches=( "$CHART_NAME"-*.tgz )
@@ -82,7 +88,8 @@ jobs:
             exit 1
           fi
           CHART_FILE="${matches[0]}"
-          CHART_VERSION=$(echo "$CHART_FILE" | sed 's/.*-\(.*\)\.tgz/\1/')
+          CHART_VERSION="${CHART_FILE#"$CHART_NAME"-}"
+          CHART_VERSION="${CHART_VERSION%.tgz}"
 
           echo "chart_file=$CHART_FILE" >> "$GITHUB_OUTPUT"
           echo "chart_version=$CHART_VERSION" >> "$GITHUB_OUTPUT"
