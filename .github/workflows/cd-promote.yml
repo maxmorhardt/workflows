@@ -15,11 +15,6 @@ on:
         description: 'Tag to promote it to, e.g. 1.4.0'
         required: true
         type: string
-      latest:
-        description: 'Also tag the promoted image as latest'
-        required: false
-        type: boolean
-        default: true
       wait_minutes:
         description: 'How long to wait for the source tag to be pushed'
         required: false
@@ -70,13 +65,8 @@ jobs:
           IMAGE: docker.io/${{ secrets.docker_username }}/${{ inputs.app_name }}
           SOURCE_TAG: ${{ inputs.source_tag }}
           TARGET_TAG: ${{ inputs.target_tag }}
-          LATEST: ${{ inputs.latest }}
         run: |
-          tags=(-t "$IMAGE:$TARGET_TAG")
-          if [ "$LATEST" = "true" ]; then
-            tags+=(-t "$IMAGE:latest")
-          fi
-          docker buildx imagetools create "${tags[@]}" "$IMAGE:$SOURCE_TAG"
+          docker buildx imagetools create -t "$IMAGE:$TARGET_TAG" -t "$IMAGE:latest" "$IMAGE:$SOURCE_TAG"
           echo "digest=$(docker buildx imagetools inspect "$IMAGE:$TARGET_TAG" --format '{{json .Manifest.Digest}}' | tr -d '"')" >> "$GITHUB_OUTPUT"
 
       - name: Report promotion
@@ -89,7 +79,7 @@ jobs:
           {
             echo "### Image promoted"
             echo ""
-            echo "\`$IMAGE:$SOURCE_TAG\` → \`$IMAGE:$TARGET_TAG\`"
+            echo "\`$IMAGE:$SOURCE_TAG\` → \`$IMAGE:$TARGET_TAG\`, \`latest\`"
             echo ""
             echo "**Digest:** \`$DIGEST\`"
           } >> "$GITHUB_STEP_SUMMARY"

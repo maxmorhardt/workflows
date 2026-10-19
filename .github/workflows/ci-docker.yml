@@ -32,10 +32,10 @@ on:
         type: boolean
         default: false
       latest:
-        description: 'Also tag the pushed image as latest'
+        description: 'Deprecated, removed next: latest moves only when cd-promote promotes a release'
         required: false
         type: boolean
-        default: true
+        default: false
       context:
         description: 'Docker build context, for apps inside a monorepo'
         required: false
