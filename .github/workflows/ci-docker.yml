@@ -25,29 +25,24 @@ on:
         description: 'Path where the artifact should be downloaded'
         required: false
         type: string
-        default: 'bin'
+        default: 'dist'
       push:
         description: 'Push image to Docker Hub'
         required: false
         type: boolean
         default: false
-      latest:
-        description: 'Also tag the pushed image as latest'
-        required: false
-        type: boolean
-        default: true
       context:
-        description: 'Docker build context, for apps inside a monorepo'
+        description: 'Docker build context'
         required: false
         type: string
         default: '.'
       dockerfile:
-        description: 'Path to the Dockerfile (defaults to <context>/Dockerfile)'
+        description: 'Path to the Dockerfile'
         required: false
         type: string
         default: ''
       build_args:
-        description: 'Newline-separated build arguments, e.g. SERVICE=contests'
+        description: 'Newline-separated build arguments'
         required: false
         type: string
         default: ''
@@ -77,6 +72,13 @@ jobs:
           name: ${{ inputs.artifact_name }}
           path: ${{ inputs.artifact_path }}
 
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.5.0
+        with:
+          dockerfile: ${{ inputs.dockerfile || format('{0}/Dockerfile', inputs.context) }}
+          failure-threshold: warning
+          ignore: DL3018
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
 
@@ -91,61 +93,53 @@ jobs:
           username: ${{ secrets.docker_username }}
           password: ${{ secrets.docker_password }}
 
-      - name: Build for scan
-        uses: docker/build-push-action@v7
-        env:
-          DOCKER_BUILD_SUMMARY: false
-          DOCKER_BUILD_RECORD_UPLOAD: false
-        with:
-          context: ${{ inputs.context }}
-          file: ${{ inputs.dockerfile }}
-          build-args: ${{ inputs.build_args }}
-          load: true
-          tags: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-
-      - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-          format: 'table'
-          exit-code: '1'
-          severity: 'HIGH,CRITICAL'
-
-      - name: Build and push
-        if: ${{ inputs.push }}
-        id: push
+      - name: Build
         uses: docker/build-push-action@v7
         with:
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
           build-args: ${{ inputs.build_args }}
           platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-            ${{ inputs.latest && format('{0}/{1}:latest', secrets.docker_username, inputs.app_name) || '' }}
+          outputs: type=oci,tar=false,dest=${{ runner.temp }}/image
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: true
           sbom: true
 
-      - name: Report image details
+      - name: Scan linux/amd64
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_PLATFORM: linux/amd64
+        with:
+          input: ${{ runner.temp }}/image
+          format: 'table'
+          exit-code: '1'
+          severity: 'HIGH,CRITICAL'
+
+      - name: Scan linux/arm64
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_PLATFORM: linux/arm64
+        with:
+          input: ${{ runner.temp }}/image
+          format: 'table'
+          exit-code: '1'
+          severity: 'HIGH,CRITICAL'
+
+      - name: Push
         if: ${{ inputs.push }}
         env:
-          IMAGE: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-          LATEST_IMAGE: ${{ inputs.latest && format('{0}/{1}:latest', secrets.docker_username, inputs.app_name) || '' }}
-          DIGEST: ${{ steps.push.outputs.digest }}
+          LAYOUT: ${{ runner.temp }}/image
+          IMAGE: docker.io/${{ secrets.docker_username }}/${{ inputs.app_name }}
+          VERSION: ${{ inputs.app_version }}
         run: |
+          skopeo copy --all "oci:$LAYOUT" "docker://$IMAGE:$VERSION"
+          docker buildx imagetools create -t "$IMAGE:latest" "$IMAGE:$VERSION"
+          digest=$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{json .Manifest.Digest}}' | tr -d '"')
           {
-            echo "### Docker Image Published"
+            echo "### Docker image published"
             echo ""
-            echo "**Image Digest:** \`$DIGEST\`"
+            echo "**Digest:** \`$digest\`"
             echo ""
-            SIZE=$(docker image inspect "$IMAGE" --format='{{.Size}}')
-            SIZE_MB=$((SIZE / 1024 / 1024))
-            echo "**Image Size:** ${SIZE_MB}MB"
-            echo ""
-            echo "**Tags:**"
-            echo "- \`$IMAGE\`"
-            if [ -n "$LATEST_IMAGE" ]; then echo "- \`$LATEST_IMAGE\`"; fi
+            echo "**Tags:** \`$IMAGE:$VERSION\`, \`$IMAGE:latest\`"
           } >> "$GITHUB_STEP_SUMMARY"

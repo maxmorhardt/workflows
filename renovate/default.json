@@ -4,7 +4,8 @@
   "extends": [
     "config:recommended",
     ":semanticCommits",
-    ":dependencyDashboard"
+    ":dependencyDashboard",
+    "helpers:pinGitHubActionDigests"
   ],
   "timezone": "America/New_York",
   "labels": [
@@ -46,6 +47,31 @@
         "dockerfile"
       ],
       "semanticCommitType": "fix"
+    },
+    {
+      "description": "keep the go directive current and move it with the golang base image in one pr",
+      "matchDatasources": [
+        "golang-version"
+      ],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "go toolchain bumps get their own pr",
+      "matchPackageNames": [
+        "go",
+        "golang"
+      ],
+      "groupName": "go"
+    },
+    {
+      "description": "our own reusable workflows follow main, so a push there is the release",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "maxmorhardt/workflows"
+      ],
+      "pinDigests": false
     }
   ]
 }

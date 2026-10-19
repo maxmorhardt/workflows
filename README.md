@@ -14,7 +14,7 @@ Reusable GitHub Actions workflows for CI/CD.
 
 This repository contains reusable GitHub Actions workflows that can be called from other repositories to standardize CI/CD. They cover building and scanning Docker images, testing Go and Node apps, packaging Helm charts, validating manifests, cutting releases, and deploying.
 
-Deployment is GitOps via **Argo CD**: workflows here don't apply anything to a cluster directly. The `cd-argocd` workflow bumps an image tag or chart revision for one cluster (`dev` or `prod`) in the gitops repo (`maxmorhardt/gitops`) and Argo CD reconciles it; prod waits for approval on the `production` environment. There is no `kubectl`/`helm upgrade` step, no cluster credentials, and no Tailscale in this repo.
+Deployment is GitOps via **Argo CD**: workflows here don't apply anything to a cluster directly. The `cd-argocd` workflow bumps an image tag or chart version for one cluster (`dev` or `prod`) in the gitops repo (`maxmorhardt/gitops`) and Argo CD reconciles it; prod waits for approval on the `production` environment. There is no `kubectl`/`helm upgrade` step, no cluster credentials, and no Tailscale in this repo.
 
 ## Setup
 
@@ -45,7 +45,6 @@ jobs:
     uses: maxmorhardt/workflows/.github/workflows/ci-go.yml@main
     with:
       repository: ${{ github.repository }}
-      swagger: true
 
   docker:
     needs: ci
@@ -65,8 +64,8 @@ jobs:
     with:
       app: my-app
       environment: prod
-      image_tag: ${{ github.ref_name }}
-      revision: ${{ github.ref_name }}
+      image_tag: 1.4.0
+      chart_version: 1.4.0
     secrets:
       gitops_token: ${{ secrets.GITOPS_TOKEN }}
 ```
@@ -75,15 +74,15 @@ jobs:
 
 ### CI
 
-- **Go CI** (`ci-go.yml`) – `go vet`, golangci-lint, optional swagger check, unit + integration tests with the coverage gate (race enabled), Trivy filesystem scan, and optional cross-compiled (`amd64`/`arm64`) binary build. Go 1.26. `working_directory` and `binary_name` let it run against a module inside a monorepo.
+- **Go CI** (`ci-go.yml`) – `go vet`, golangci-lint, the swagger check when the module's Makefile has `swag-check`, unit + integration tests with the coverage gate (race enabled), and Trivy filesystem scan. Go version from the module's `go.mod`. `working_directory` points it at a module inside a monorepo. Images compile Go in their own multi-stage Dockerfile, so it builds no binaries.
 - **Node CI** (`ci-node.yml`) – pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, and Trivy filesystem scan. Node 24. `working_directory` points it at an app inside a monorepo.
-- **Docker CI** (`ci-docker.yml`) – Buildx image build, Trivy image scan (fails on HIGH/CRITICAL), and optional multi-arch (`amd64`/`arm64`) push to Docker Hub with `latest`, provenance, and SBOM. Optionally consumes a prebuilt binary artifact. `context`, `dockerfile`, and `build_args` support monorepos and one Dockerfile building several images.
-- **Helm CI** (`ci-helm.yml`) – validates (via Helm Validate), packages the chart, and optionally pushes it as an OCI artifact to `ghcr.io/<owner>/charts`.
+- **Docker CI** (`ci-docker.yml`) – Lints the Dockerfile with hadolint (fails on warnings; `DL3018` apk pinning is ignored), builds once to an OCI archive with provenance and SBOM (`amd64` and `arm64`), Trivy-scans each platform of that archive (fails on HIGH/CRITICAL), then pushes the scanned bytes to Docker Hub as the given version and `latest`. Optionally consumes a build artifact, such as a Node app's `dist/`. `context`, `dockerfile`, and `build_args` support monorepos and one Dockerfile building several images.
+- **Helm CI** (`ci-helm.yml`) – validates (via Helm Validate), then packages the chart and pushes it to `oci://ghcr.io/<owner>/charts`. Name and version come from `Chart.yaml`; `version` overrides the version (e.g. `0.0.0-sha-<commit>` for dev).
 
 ### Validation
 
-- **Helm Validate** (`validate-helm.yml`) – renders a local or remote/OCI chart with `helm template`, optional `helm lint --strict`, and optional kubeconform validation of the rendered output.
-- **Manifest Validate** (`validate-manifests.yml`) – validates raw Kubernetes manifests (files, dirs, or globs) with kubeconform against the default and CRD schema catalogs.
+- **Helm Validate** (`validate-helm.yml`) – renders a local or remote/OCI chart with `helm template` (one or more `values_files`), optional `helm lint --strict`, and always validates the output with strict kubeconform against the default and CRD schema catalogs (CRD definitions themselves are skipped).
+- **Manifest Validate** (`validate-manifests.yml`) – validates raw Kubernetes manifests (files, dirs, or globs) with strict kubeconform against the default and CRD schema catalogs; every kind must have a schema.
 - **Terraform Validate** (`validate-terraform.yml`) – `fmt -check`, init, validate, and plan for one root module (`working_directory`), with the plan posted to the job summary. `fail_on_diff: true` turns a non-empty plan into a failure, which is how scheduled drift detection works.
 
 ### Release & PR
@@ -94,4 +93,5 @@ jobs:
 ### Deployment
 
 - **Argo CD** (`cd-argocd.yml`) – GitOps deploy: bumps `image.tag` and/or the chart `targetRevision` in `clusters/<environment>/apps/<app>.yaml` in the gitops repo, commits, and pushes (rebase-and-retry on conflict). `environment: prod` runs in the `production` environment, so it waits for approval; `dev` runs in `development`. Argo CD applies the change to the cluster.
+- **Promote image** (`cd-promote.yml`) – waits for an image tag already built and tested (e.g. dev's `sha-<commit>`), then retags that exact multi-arch manifest as the release version and `stable` without rebuilding, so prod runs the bytes dev ran and `stable` is always what prod runs.
 - **Terraform Apply** (`cd-terraform.yml`) – plans one root module (`working_directory`) to a file and applies that exact file, so the apply cannot recompute into a different change than the one planned. The diff is reviewed on the pull request, not at apply time. Runs in the `production` environment.

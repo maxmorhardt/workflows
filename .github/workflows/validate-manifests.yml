@@ -11,11 +11,6 @@ on:
         description: 'Newline or space-separated manifest files, directories, or globs to validate'
         required: true
         type: string
-      ignore_missing_schemas:
-        description: 'Pass -ignore-missing-schemas to kubeconform'
-        required: false
-        type: boolean
-        default: true
 
 jobs:
   validate:
@@ -39,14 +34,12 @@ jobs:
       - name: Validate
         env:
           MANIFESTS: ${{ inputs.manifests }}
-          IGNORE_MISSING_SCHEMAS: ${{ inputs.ignore_missing_schemas }}
         run: |
-          cmd=(kubeconform -strict -summary)
-          if [ "$IGNORE_MISSING_SCHEMAS" = "true" ]; then
-            cmd+=(-ignore-missing-schemas)
-          fi
-          cmd+=(-schema-location default -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json')
+          cmd=(kubeconform -strict -summary -skip CustomResourceDefinition
+            -schema-location default
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json')
 
+          # shellcheck disable=SC2206 # split on whitespace and expand globs on purpose
           files=($MANIFESTS)
           echo "Running: ${cmd[*]} ${files[*]}"
           "${cmd[@]}" "${files[@]}"

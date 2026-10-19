@@ -7,29 +7,11 @@ on:
         description: 'Repository to checkout'
         required: true
         type: string
-      swagger:
-        description: 'Verify swagger docs are up to date'
-        required: false
-        type: boolean
-        default: false
-      build:
-        description: 'Build go binary before Docker build'
-        required: false
-        type: boolean
-        default: true
       working_directory:
-        description: 'Directory holding go.mod and the Makefile, for modules inside a monorepo'
+        description: 'Working directory to run from'
         required: false
         type: string
         default: '.'
-      binary_name:
-        description: 'Name of the built binary and its artifact (defaults to the repository name)'
-        required: false
-        type: string
-        default: ''
-
-env:
-  GO_VERSION: '1.26'
 
 jobs:
   ci:
@@ -41,8 +23,6 @@ jobs:
     defaults:
       run:
         working-directory: ${{ inputs.working_directory }}
-    env:
-      BINARY_NAME: ${{ inputs.binary_name || github.event.repository.name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -52,7 +32,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v7
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: ${{ inputs.working_directory }}/go.mod
           cache: true
           cache-dependency-path: ${{ inputs.working_directory }}/go.sum
 
@@ -69,8 +49,12 @@ jobs:
           working-directory: ${{ inputs.working_directory }}
 
       - name: Check swagger docs are up to date
-        if: ${{ inputs.swagger }}
-        run: make swag-check
+        run: |
+          if make -n swag-check >/dev/null 2>&1; then
+            make swag-check
+          else
+            echo "no swag-check target, skipping"
+          fi
 
       - name: Run unit tests and coverage gate
         run: make cover RACE=-race
@@ -89,18 +73,6 @@ jobs:
           path: ${{ inputs.working_directory }}/coverage.html
           retention-days: 7
 
-      - name: Build Go binaries
-        if: ${{ inputs.build }}
-        env:
-          CGO_ENABLED: 0
-          GOOS: linux
-        run: |
-          for arch in amd64 arm64; do
-            GOARCH="$arch" make build \
-              OUT="bin/$arch/$BINARY_NAME" \
-              BUILD_FLAGS="-a" LDFLAGS="-s -w"
-          done
-
       - name: Run Trivy scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -109,11 +81,3 @@ jobs:
           format: 'table'
           exit-code: '1'
           severity: 'HIGH,CRITICAL'
-
-      - name: Upload build artifacts
-        if: ${{ inputs.build }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ env.BINARY_NAME }}
-          path: ${{ inputs.working_directory }}/bin/
-          retention-days: 7

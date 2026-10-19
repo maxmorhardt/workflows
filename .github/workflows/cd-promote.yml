@@ -1,0 +1,75 @@
+name: Promote image
+
+on:
+  workflow_call:
+    inputs:
+      app_name:
+        description: 'Image name'
+        required: true
+        type: string
+      source_tag:
+        description: 'Tag of the dev image'
+        required: true
+        type: string
+      target_tag:
+        description: 'Tag to promote source to'
+        required: true
+        type: string
+    secrets:
+      docker_username:
+        required: true
+      docker_password:
+        required: true
+
+jobs:
+  promote:
+    name: Promote - ${{ inputs.app_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          registry: docker.io
+          username: ${{ secrets.docker_username }}
+          password: ${{ secrets.docker_password }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Wait for the source image
+        timeout-minutes: 15
+        env:
+          SOURCE: docker.io/${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.source_tag }}
+        run: |
+          until docker buildx imagetools inspect "$SOURCE" >/dev/null 2>&1; do
+            echo "waiting for $SOURCE"
+            sleep 30
+          done
+
+      - name: Retag
+        id: retag
+        env:
+          IMAGE: docker.io/${{ secrets.docker_username }}/${{ inputs.app_name }}
+          SOURCE_TAG: ${{ inputs.source_tag }}
+          TARGET_TAG: ${{ inputs.target_tag }}
+        run: |
+          docker buildx imagetools create -t "$IMAGE:$TARGET_TAG" -t "$IMAGE:stable" "$IMAGE:$SOURCE_TAG"
+          echo "digest=$(docker buildx imagetools inspect "$IMAGE:$TARGET_TAG" --format '{{json .Manifest.Digest}}' | tr -d '"')" >> "$GITHUB_OUTPUT"
+
+      - name: Report promotion
+        env:
+          IMAGE: ${{ secrets.docker_username }}/${{ inputs.app_name }}
+          SOURCE_TAG: ${{ inputs.source_tag }}
+          TARGET_TAG: ${{ inputs.target_tag }}
+          DIGEST: ${{ steps.retag.outputs.digest }}
+        run: |
+          {
+            echo "### Image promoted"
+            echo ""
+            echo "\`$IMAGE:$SOURCE_TAG\` → \`$IMAGE:$TARGET_TAG\`, \`stable\`"
+            echo ""
+            echo "**Digest:** \`$DIGEST\`"
+          } >> "$GITHUB_STEP_SUMMARY"
