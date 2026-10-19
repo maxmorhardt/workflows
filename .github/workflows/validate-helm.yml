@@ -4,15 +4,15 @@ on:
   workflow_call:
     inputs:
       repository:
-        description: 'Repository to checkout (local charts / values files)'
+        description: 'Repository to checkout'
         required: true
         type: string
       chart:
-        description: 'Chart to render: a local directory, a repo/chart ref, or an oci:// ref'
+        description: 'Chart to render'
         required: true
         type: string
       chart_version:
-        description: 'Chart version to render (remote charts)'
+        description: 'Chart version to render'
         required: false
         type: string
         default: ''
@@ -26,28 +26,18 @@ on:
         required: false
         type: string
         default: ''
-      values_file:
-        description: 'Values file to render with'
+      values_files:
+        description: 'Newline-separated values files to render with, in order'
         required: false
         type: string
         default: ''
       set_values:
-        description: 'Comma-separated key=value pairs passed with --set, for values a chart requires but has no default for'
+        description: 'Comma-separated key=value pairs passed with --set, for values a chart requires'
         required: false
         type: string
         default: ''
       lint:
-        description: 'Run `helm lint --strict` (local charts only)'
-        required: false
-        type: boolean
-        default: false
-      kubeconform:
-        description: 'Validate rendered output with kubeconform'
-        required: false
-        type: boolean
-        default: true
-      ignore_missing_schemas:
-        description: 'Pass -ignore-missing-schemas to kubeconform'
+        description: 'Run `helm lint --strict`'
         required: false
         type: boolean
         default: false
@@ -81,7 +71,6 @@ jobs:
           version: 'latest'
 
       - name: Install Kubeconform
-        if: ${{ inputs.kubeconform }}
         run: |
           wget https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
           tar xf kubeconform-linux-amd64.tar.gz
@@ -110,10 +99,8 @@ jobs:
           RELEASE_NAME: ${{ inputs.release_name }}
           CHART: ${{ inputs.chart }}
           CHART_VERSION: ${{ inputs.chart_version }}
-          VALUES_FILE: ${{ inputs.values_file }}
+          VALUES_FILES: ${{ inputs.values_files }}
           SET_VALUES: ${{ inputs.set_values }}
-          KUBECONFORM: ${{ inputs.kubeconform }}
-          IGNORE_MISSING_SCHEMAS: ${{ inputs.ignore_missing_schemas }}
         run: |
           set -o pipefail
 
@@ -121,24 +108,17 @@ jobs:
           if [ -n "$CHART_VERSION" ]; then
             template_cmd+=(--version "$CHART_VERSION")
           fi
-          if [ -n "$VALUES_FILE" ]; then
-            template_cmd+=(--values "$VALUES_FILE")
-          fi
+          for values in $VALUES_FILES; do
+            template_cmd+=(--values "$values")
+          done
           if [ -n "$SET_VALUES" ]; then
             template_cmd+=(--set "$SET_VALUES")
           fi
 
-          if [ "$KUBECONFORM" != "true" ]; then
-            echo "Running: ${template_cmd[*]}"
-            "${template_cmd[@]}" >/dev/null
-            exit 0
-          fi
-
-          kubeconform_cmd=(kubeconform -strict -summary)
-          if [ "$IGNORE_MISSING_SCHEMAS" = "true" ]; then
-            kubeconform_cmd+=(-ignore-missing-schemas)
-          fi
-          kubeconform_cmd+=(-schema-location default -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json')
+          # CRDs have no published schema; every resource that uses them is still validated
+          kubeconform_cmd=(kubeconform -strict -summary -skip CustomResourceDefinition
+            -schema-location default
+            -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json')
 
           echo "Running: ${template_cmd[*]} | ${kubeconform_cmd[*]}"
           "${template_cmd[@]}" | "${kubeconform_cmd[@]}"

@@ -30,7 +30,6 @@ jobs:
       chart: ${{ inputs.chart }}
       working_directory: ${{ inputs.working_directory }}
       lint: true
-      kubeconform: true
       set_values: image.tag=0.0.0-validate
 
   publish:

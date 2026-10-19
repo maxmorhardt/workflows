@@ -81,8 +81,8 @@ jobs:
 
 ### Validation
 
-- **Helm Validate** (`validate-helm.yml`) – renders a local or remote/OCI chart with `helm template`, optional `helm lint --strict`, and optional kubeconform validation of the rendered output.
-- **Manifest Validate** (`validate-manifests.yml`) – validates raw Kubernetes manifests (files, dirs, or globs) with kubeconform against the default and CRD schema catalogs.
+- **Helm Validate** (`validate-helm.yml`) – renders a local or remote/OCI chart with `helm template` (one or more `values_files`), optional `helm lint --strict`, and always validates the output with strict kubeconform against the default and CRD schema catalogs (CRD definitions themselves are skipped).
+- **Manifest Validate** (`validate-manifests.yml`) – validates raw Kubernetes manifests (files, dirs, or globs) with strict kubeconform against the default and CRD schema catalogs; every kind must have a schema.
 - **Terraform Validate** (`validate-terraform.yml`) – `fmt -check`, init, validate, and plan for one root module (`working_directory`), with the plan posted to the job summary. `fail_on_diff: true` turns a non-empty plan into a failure, which is how scheduled drift detection works.
 
 ### Release & PR

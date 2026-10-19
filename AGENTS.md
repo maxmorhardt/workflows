@@ -17,8 +17,8 @@
   - `ci-node.yml` - pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, Trivy filesystem scan. Node 24.
   - `ci-docker.yml` - one Buildx build to an OCI archive (provenance, SBOM), Trivy scan of each platform in it failing on HIGH and CRITICAL, then a push of those exact bytes with `latest`.
   - `ci-helm.yml` - validates, then packages and pushes a chart to `oci://ghcr.io/<owner>/charts`, named and versioned from `Chart.yaml` unless `version` overrides it.
-  - `validate-helm.yml` - renders a local or remote OCI chart, optional `helm lint --strict`, optional kubeconform on the output.
-  - `validate-manifests.yml` - kubeconform over raw manifests (files, dirs, globs) against the default and CRD schema catalogs.
+  - `validate-helm.yml` - renders a local or remote OCI chart, optional `helm lint --strict`, always strict kubeconform on the output.
+  - `validate-manifests.yml` - strict kubeconform over raw manifests (files, dirs, globs) against the default and CRD schema catalogs.
   - `validate-terraform.yml` - `fmt -check`, init, validate, and plan for one root module. `fail_on_diff` turns a non-empty plan into a failure, which is how scheduled drift detection works.
   - `cd-terraform.yml` - plans to a file then applies that exact file, so the apply cannot recompute into something different from what was planned. Human review of the diff happens on the pull request plan, not here.
   - `release-please.yml` - maintains release PRs and tags from conventional commits.
