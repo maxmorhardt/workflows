@@ -13,7 +13,7 @@ on:
         type: boolean
         default: false
       working_directory:
-        description: 'Directory holding go.mod and the Makefile, for modules inside a monorepo'
+        description: 'Root module directory to run in'
         required: false
         type: string
         default: '.'

@@ -16,12 +16,12 @@ on:
         required: true
         type: string
       working_directory:
-        description: 'Working directory for helm package command'
+        description: 'Working directory for helm package'
         required: false
         type: string
         default: '.'
       version:
-        description: 'Chart version to package as, overriding Chart.yaml (e.g. 1.4.0 or 0.0.0-sha-1a2b3c4)'
+        description: 'Chart version to package'
         required: false
         type: string
         default: ''
