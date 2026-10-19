@@ -18,7 +18,7 @@ on:
         type: string
         default: ''
       chart_version:
-        description: 'Chart version to deploy, from the OCI repository the Application points at'
+        description: 'Chart version to deploy'
         required: false
         type: string
         default: ''

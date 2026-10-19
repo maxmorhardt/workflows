@@ -4,15 +4,15 @@ on:
   workflow_call:
     inputs:
       app_name:
-        description: 'Image name under the Docker Hub account'
+        description: 'Image name'
         required: true
         type: string
       source_tag:
-        description: 'Tag of the image already built and tested'
+        description: 'Tag of the dev image'
         required: true
         type: string
       target_tag:
-        description: 'Tag to promote it to'
+        description: 'Tag to promote source to'
         required: true
         type: string
     secrets:

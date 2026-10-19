@@ -35,7 +35,6 @@ jobs:
         env:
           MANIFESTS: ${{ inputs.manifests }}
         run: |
-          # CRDs have no published schema; every resource that uses them is still validated
           cmd=(kubeconform -strict -summary -skip CustomResourceDefinition
             -schema-location default
             -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json')

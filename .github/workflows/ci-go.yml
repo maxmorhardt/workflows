@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       working_directory:
-        description: 'Root module directory to run in'
+        description: 'Working directory to run from'
         required: false
         type: string
         default: '.'
