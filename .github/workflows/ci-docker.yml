@@ -93,7 +93,7 @@ jobs:
           file: ${{ inputs.dockerfile }}
           build-args: ${{ inputs.build_args }}
           platforms: ${{ inputs.push && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
-          outputs: type=oci,dest=${{ runner.temp }}/image.tar
+          outputs: type=oci,tar=false,dest=${{ runner.temp }}/image
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: true
@@ -104,7 +104,7 @@ jobs:
         env:
           TRIVY_PLATFORM: linux/amd64
         with:
-          input: ${{ runner.temp }}/image.tar
+          input: ${{ runner.temp }}/image
           format: 'table'
           exit-code: '1'
           severity: 'HIGH,CRITICAL'
@@ -115,7 +115,7 @@ jobs:
         env:
           TRIVY_PLATFORM: linux/arm64
         with:
-          input: ${{ runner.temp }}/image.tar
+          input: ${{ runner.temp }}/image
           format: 'table'
           exit-code: '1'
           severity: 'HIGH,CRITICAL'
@@ -123,11 +123,11 @@ jobs:
       - name: Push the scanned image
         if: ${{ inputs.push }}
         env:
-          ARCHIVE: ${{ runner.temp }}/image.tar
+          LAYOUT: ${{ runner.temp }}/image
           IMAGE: docker.io/${{ secrets.docker_username }}/${{ inputs.app_name }}
           VERSION: ${{ inputs.app_version }}
         run: |
-          skopeo copy --all "oci-archive:$ARCHIVE" "docker://$IMAGE:$VERSION"
+          skopeo copy --all "oci:$LAYOUT" "docker://$IMAGE:$VERSION"
           docker buildx imagetools create -t "$IMAGE:latest" "$IMAGE:$VERSION"
           digest=$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{json .Manifest.Digest}}' | tr -d '"')
           {
