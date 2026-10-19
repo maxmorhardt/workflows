@@ -16,7 +16,7 @@
   - `ci-go.yml` - `go vet`, golangci-lint, the swagger check when the Makefile has `swag-check`, unit and integration tests with the coverage gate (race on), Trivy filesystem scan. Go version from the module's `go.mod`. No binary build: Dockerfiles compile Go in a multi-stage build.
   - `ci-node.yml` - pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, Trivy filesystem scan. Node 24.
   - `ci-docker.yml` - one Buildx build to an OCI archive (provenance, SBOM), Trivy scan of each platform in it failing on HIGH and CRITICAL, then a push of those exact bytes with `latest`.
-  - `ci-helm.yml` - validates, packages (optionally overriding the version), and optionally pushes a chart as an OCI artifact to `ghcr.io/<owner>/charts`.
+  - `ci-helm.yml` - validates, then packages and pushes a chart to `oci://ghcr.io/<owner>/charts`, named and versioned from `Chart.yaml` unless `version` overrides it.
   - `validate-helm.yml` - renders a local or remote OCI chart, optional `helm lint --strict`, optional kubeconform on the output.
   - `validate-manifests.yml` - kubeconform over raw manifests (files, dirs, globs) against the default and CRD schema catalogs.
   - `validate-terraform.yml` - `fmt -check`, init, validate, and plan for one root module. `fail_on_diff` turns a non-empty plan into a failure, which is how scheduled drift detection works.
@@ -47,7 +47,7 @@
 
 - Make the smallest safe change that solves the requested problem.
 - One workflow per file, named `<kind>-<target>.yml`: `ci-` for build and test, `validate-` for check-only, `cd-` for deploy, plus the two release and PR helpers.
-- Inputs are `snake_case` (`app_name`, `chart_directory`, `image_tag`, `working_directory`). Follow existing names rather than introducing synonyms.
+- Inputs are `snake_case` (`app_name`, `chart_version`, `image_tag`, `working_directory`). Follow existing names rather than introducing synonyms.
 - Pin third-party actions to a major version tag (`actions/checkout@v7`, `aquasecurity/trivy-action@v0.36.0`) so Renovate can bump them.
 - Current secrets: `docker_username` and `docker_password` (Docker CI push), `release_please_token` (release-please), `gitops_token` (Argo CD deploy), and `aws_access_key_id` / `aws_secret_access_key` / `cloudflare_api_token` / `repo_admin_token` / `tf_vars` (Terraform). Helm CI and PR Title use the built-in `GITHUB_TOKEN`.
 - The Terraform workflows need AWS credentials for every module, not just `aws/`, because all state lives in the same S3 backend.

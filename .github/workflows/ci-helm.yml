@@ -7,49 +7,43 @@ on:
         description: 'Repository to checkout'
         required: true
         type: string
-      chart_directory:
-        description: 'Chart directory name to package'
-        required: true
-        type: string
-      chart_name:
-        description: 'Helm chart name'
+      chart:
+        description: 'Chart directory, relative to working_directory'
         required: true
         type: string
       working_directory:
-        description: 'Working directory for helm package'
+        description: 'Working directory to run from'
         required: false
         type: string
         default: '.'
       version:
-        description: 'Chart version to package'
+        description: 'Chart version to publish, overriding Chart.yaml'
         required: false
         type: string
         default: ''
-      push:
-        description: 'Push the chart to the registry'
-        required: false
-        type: boolean
-        default: false
 
 jobs:
   validate:
     uses: maxmorhardt/workflows/.github/workflows/validate-helm.yml@main
     with:
       repository: ${{ inputs.repository }}
-      chart: ${{ inputs.chart_directory }}
+      chart: ${{ inputs.chart }}
       working_directory: ${{ inputs.working_directory }}
       lint: true
       kubeconform: true
       set_values: image.tag=0.0.0-validate
 
-  package:
-    name: Helm Package - ${{ inputs.chart_name }}
+  publish:
+    name: Helm Publish - ${{ inputs.chart }}
     needs: validate
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     permissions:
       contents: read
       packages: write
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -61,86 +55,26 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Login to Helm registry
-        if: inputs.push
+      - name: Package and push
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ACTOR: ${{ github.actor }}
-        run: |
-          echo "$GITHUB_TOKEN" | helm registry login ghcr.io \
-            --username "$ACTOR" --password-stdin
-
-      - name: Package Helm chart
-        id: package
-        working-directory: ${{ inputs.working_directory }}
-        env:
-          CHART_DIRECTORY: ${{ inputs.chart_directory }}
-          CHART_NAME: ${{ inputs.chart_name }}
+          CHART: ${{ inputs.chart }}
           VERSION: ${{ inputs.version }}
+          OWNER: ${{ github.repository_owner }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          helm package "$CHART_DIRECTORY" ${VERSION:+--version "$VERSION"}
+          name=$(yq '.name' "$CHART/Chart.yaml")
+          version="${VERSION:-$(yq '.version' "$CHART/Chart.yaml")}"
+          registry="oci://ghcr.io/$OWNER/charts"
 
-          shopt -s nullglob
-          matches=( "$CHART_NAME"-*.tgz )
-          shopt -u nullglob
-          if [ "${#matches[@]}" -ne 1 ]; then
-            echo "Expected exactly one chart package matching ${CHART_NAME}-*.tgz, found ${#matches[@]}." >&2
-            exit 1
-          fi
-          CHART_FILE="${matches[0]}"
-          CHART_VERSION="${CHART_FILE#"$CHART_NAME"-}"
-          CHART_VERSION="${CHART_VERSION%.tgz}"
+          echo "$GITHUB_TOKEN" | helm registry login ghcr.io --username "$OWNER" --password-stdin
+          helm package "$CHART" --version "$version"
+          helm push "$name-$version.tgz" "$registry" 2>&1 | tee push.txt
+          digest=$(awk '/^Digest:/ {print $2}' push.txt)
 
-          echo "chart_file=$CHART_FILE" >> "$GITHUB_OUTPUT"
-          echo "chart_version=$CHART_VERSION" >> "$GITHUB_OUTPUT"
-
-          sha256sum "$CHART_FILE" > "${CHART_FILE}.sha256"
-          echo "Chart: $CHART_FILE"
-          echo "Version: $CHART_VERSION"
-          echo "SHA256: $(cat "${CHART_FILE}.sha256")"
-
-      - name: Push Helm chart
-        if: inputs.push
-        id: push
-        working-directory: ${{ inputs.working_directory }}
-        env:
-          CHART_FILE: ${{ steps.package.outputs.chart_file }}
-          REPO_OWNER: ${{ github.repository_owner }}
-        run: |
-          PUSH_OUTPUT=$(helm push "$CHART_FILE" "oci://ghcr.io/$REPO_OWNER/charts" 2>&1)
-          echo "$PUSH_OUTPUT"
-
-          DIGEST=$(echo "$PUSH_OUTPUT" | grep -oP 'Digest: \K[^ ]+')
-          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
-
-      - name: Upload chart artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ inputs.chart_name }}-${{ steps.package.outputs.chart_version }}
-          path: |
-            ${{ inputs.working_directory }}/${{ steps.package.outputs.chart_file }}
-            ${{ inputs.working_directory }}/${{ steps.package.outputs.chart_file }}.sha256
-          retention-days: 30
-
-      - name: Report chart details
-        if: inputs.push
-        env:
-          CHART_NAME: ${{ inputs.chart_name }}
-          CHART_VERSION: ${{ steps.package.outputs.chart_version }}
-          REPO_OWNER: ${{ github.repository_owner }}
-          DIGEST: ${{ steps.push.outputs.digest }}
-        run: |
           {
-            echo "### Helm Chart Published"
+            echo "### Helm chart published"
             echo ""
-            echo "**Chart:** \`$CHART_NAME\`"
-            echo "**Version:** \`$CHART_VERSION\`"
-            echo "**Registry:** \`oci://ghcr.io/$REPO_OWNER/charts/$CHART_NAME\`"
-            echo "**Digest:** \`$DIGEST\`"
+            echo "\`$registry/$name:$version\`"
             echo ""
+            echo "**Digest:** \`$digest\`"
           } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Logout from Helm registry
-        if: always() && inputs.push
-        run: |
-          helm registry logout ghcr.io
