@@ -15,11 +15,6 @@ on:
         description: 'Tag to promote it to, e.g. 1.4.0'
         required: true
         type: string
-      wait_minutes:
-        description: 'How long to wait for the source tag to be pushed'
-        required: false
-        type: number
-        default: 45
     secrets:
       docker_username:
         required: true
@@ -45,16 +40,11 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Wait for the source image
+        timeout-minutes: 45
         env:
           SOURCE: docker.io/${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.source_tag }}
-          WAIT_MINUTES: ${{ inputs.wait_minutes }}
         run: |
-          deadline=$(( $(date +%s) + WAIT_MINUTES * 60 ))
           until docker buildx imagetools inspect "$SOURCE" >/dev/null 2>&1; do
-            if [ "$(date +%s)" -ge "$deadline" ]; then
-              echo "$SOURCE was not pushed within $WAIT_MINUTES minutes"
-              exit 1
-            fi
             echo "waiting for $SOURCE"
             sleep 30
           done
