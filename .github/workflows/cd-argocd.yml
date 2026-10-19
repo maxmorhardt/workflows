@@ -22,11 +22,6 @@ on:
         required: false
         type: string
         default: ''
-      revision:
-        description: 'Old name for chart_version, removed next'
-        required: false
-        type: string
-        default: ''
     secrets:
       gitops_token:
         required: true
@@ -52,7 +47,7 @@ jobs:
           APP: ${{ inputs.app }}
           ENVIRONMENT: ${{ inputs.environment }}
           IMAGE_TAG: ${{ inputs.image_tag }}
-          CHART_VERSION: ${{ inputs.chart_version || inputs.revision }}
+          CHART_VERSION: ${{ inputs.chart_version }}
         run: |
           case "$ENVIRONMENT" in
             dev|prod) ;;
