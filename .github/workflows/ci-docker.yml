@@ -32,17 +32,17 @@ on:
         type: boolean
         default: false
       context:
-        description: 'Docker build context, for apps inside a monorepo'
+        description: 'Docker build context'
         required: false
         type: string
         default: '.'
       dockerfile:
-        description: 'Path to the Dockerfile (defaults to <context>/Dockerfile)'
+        description: 'Path to the Dockerfile'
         required: false
         type: string
         default: ''
       build_args:
-        description: 'Newline-separated build arguments, e.g. SERVICE=contests'
+        description: 'Newline-separated build arguments'
         required: false
         type: string
         default: ''
