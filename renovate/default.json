@@ -7,25 +7,45 @@
     ":dependencyDashboard"
   ],
   "timezone": "America/New_York",
-  "labels": ["dependencies"],
-  "reviewers": ["maxmorhardt"],
+  "labels": [
+    "dependencies"
+  ],
+  "reviewers": [
+    "maxmorhardt"
+  ],
   "prConcurrentLimit": 5,
   "minimumReleaseAge": "3 days",
-  "postUpdateOptions": ["gomodTidy"],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["before 6am on the first day of the month"]
+    "schedule": [
+      "before 6am on the first day of the month"
+    ]
   },
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
-    "labels": ["security"],
+    "labels": [
+      "security"
+    ],
     "semanticCommitType": "fix"
   },
   "packageRules": [
     {
       "description": "group all non-major updates into one rolling pr per repo",
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "groupName": "all non-major dependencies"
+    },
+    {
+      "description": "base image bumps are fixes, so release-please ships them to prod",
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "semanticCommitType": "fix"
     }
   ]
 }

@@ -6,7 +6,7 @@
 - Language: YAML (GitHub Actions reusable workflows), plus JSON for the shared Renovate preset
 - Purpose: The shared CI/CD library for every `maxmorhardt` repo. Reusable workflows called with `uses:` from other repositories.
 - Target environments: GitHub-hosted `ubuntu-latest` runners. Deployment is GitOps, so the deploy workflow commits to the gitops repo and Argo CD reconciles.
-- Related repos: every repo in the org consumes these. `infra` is the gitops target of `cd-argocd.yml`.
+- Related repos: every repo in the org consumes these. `gitops` is the target of `cd-argocd.yml`.
 
 **Consumers pin `@main`, not a tag.** A merge here is live for every repo on its next run.
 
@@ -23,7 +23,7 @@
   - `cd-terraform.yml` - plans to a file then applies that exact file, so the apply cannot recompute into something different from what was planned. Human review of the diff happens on the pull request plan, not here.
   - `release-please.yml` - maintains release PRs and tags from conventional commits.
   - `pr-title.yml` - enforces a semantic PR title.
-  - `cd-argocd.yml` - GitOps deploy. Bumps `image.tag` and/or chart `targetRevision` in the `Application` manifest in `maxmorhardt/infra`, commits, pushes with rebase-and-retry.
+  - `cd-argocd.yml` - GitOps deploy. Bumps `image.tag` and/or the chart `targetRevision` in `clusters/<environment>/apps/<app>.yaml` in `maxmorhardt/gitops`, commits, pushes with rebase-and-retry. Prod deploys wait on the `production` environment's approval.
 - `renovate/default.json` - the shared Renovate preset every repo extends via a two-line `renovate.json`.
 - `renovate/README.md` - what the preset does and the one-time GitHub App setup.
 
@@ -76,7 +76,7 @@ There is no local test harness. A workflow is only truly exercised when a consum
 - Test a risky change on a branch first: point one consumer repo at `@<branch>` temporarily, confirm a green run, then merge here and revert the consumer to `@main`.
 - Prefer a change that is inert unless a new input is set. That way a mistake affects nothing until someone opts in.
 - After merging, watch the next run in at least one consuming repo per affected language rather than assuming success.
-- For `cd-argocd.yml` changes, confirm the commit it produces in `infra` is correct before trusting it. A bad bump reconciles straight into the cluster.
+- For `cd-argocd.yml` changes, confirm the commit it produces in `gitops` is correct before trusting it. A bad bump reconciles straight into the cluster.
 
 ## Renovate Preset Behavior
 

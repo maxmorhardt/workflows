@@ -31,6 +31,11 @@ on:
         required: false
         type: boolean
         default: false
+      latest:
+        description: 'Also tag the pushed image as latest'
+        required: false
+        type: boolean
+        default: true
       context:
         description: 'Docker build context, for apps inside a monorepo'
         required: false
@@ -118,7 +123,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-            ${{ secrets.docker_username }}/${{ inputs.app_name }}:latest
+            ${{ inputs.latest && format('{0}/{1}:latest', secrets.docker_username, inputs.app_name) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: true
@@ -128,7 +133,7 @@ jobs:
         if: ${{ inputs.push }}
         env:
           IMAGE: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-          LATEST_IMAGE: ${{ secrets.docker_username }}/${{ inputs.app_name }}:latest
+          LATEST_IMAGE: ${{ inputs.latest && format('{0}/{1}:latest', secrets.docker_username, inputs.app_name) || '' }}
           DIGEST: ${{ steps.push.outputs.digest }}
         run: |
           {
@@ -142,5 +147,5 @@ jobs:
             echo ""
             echo "**Tags:**"
             echo "- \`$IMAGE\`"
-            echo "- \`$LATEST_IMAGE\`"
+            if [ -n "$LATEST_IMAGE" ]; then echo "- \`$LATEST_IMAGE\`"; fi
           } >> "$GITHUB_STEP_SUMMARY"
