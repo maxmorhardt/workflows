@@ -13,7 +13,7 @@
 ## Repository Layout
 
 - `.github/workflows/` - the reusable workflows. Every one is `on: workflow_call`.
-  - `ci-go.yml` - `go vet`, golangci-lint, optional swagger check, unit and integration tests with the coverage gate (race on), Trivy filesystem scan, optional cross-compiled `amd64`/`arm64` binary. Go 1.26.
+  - `ci-go.yml` - `go vet`, golangci-lint, optional swagger check, unit and integration tests with the coverage gate (race on), Trivy filesystem scan, optional cross-compiled `amd64`/`arm64` binary. Go version from the module's `go.mod`.
   - `ci-node.yml` - pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, Trivy filesystem scan. Node 24.
   - `ci-docker.yml` - Buildx build, Trivy image scan failing on HIGH and CRITICAL, optional multi-arch push to Docker Hub with `latest`, provenance, and SBOM.
   - `ci-helm.yml` - validates, packages (optionally overriding the version), and optionally pushes a chart as an OCI artifact to `ghcr.io/<owner>/charts`.
@@ -51,7 +51,7 @@
 - Pin third-party actions to a major version tag (`actions/checkout@v7`, `aquasecurity/trivy-action@v0.36.0`) so Renovate can bump them.
 - Current secrets: `docker_username` and `docker_password` (Docker CI push), `release_please_token` (release-please), `gitops_token` (Argo CD deploy), and `aws_access_key_id` / `aws_secret_access_key` / `cloudflare_api_token` / `repo_admin_token` / `tf_vars` (Terraform). Helm CI and PR Title use the built-in `GITHUB_TOKEN`.
 - The Terraform workflows need AWS credentials for every module, not just `aws/`, because all state lives in the same S3 backend.
-- Bumping Go 1.26 or Node 24 is a fleet-wide change. Check that consumers' `go.mod` and `package.json` engines agree first.
+- Bumping Node 24 is a fleet-wide change. Check that consumers' `package.json` engines agree first. Go follows each module's `go.mod`, which Renovate bumps together with the `golang` base image.
 - Renovate policy changes go in `renovate/default.json`. Per-repo exceptions belong in that repo's `renovate.json` as a `packageRules` entry. Never special-case a single repo in the shared preset.
 - Keep `README.md` in sync. It documents each workflow's inputs and is what people read before wiring one up.
 
