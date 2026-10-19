@@ -126,7 +126,7 @@ jobs:
           exit-code: '1'
           severity: 'HIGH,CRITICAL'
 
-      - name: Push the scanned image
+      - name: Push
         if: ${{ inputs.push }}
         env:
           LAYOUT: ${{ runner.temp }}/image
