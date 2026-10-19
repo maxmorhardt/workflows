@@ -11,19 +11,13 @@ on:
         description: 'Root module directory to run in'
         required: true
         type: string
-      terraform_version:
-        description: 'Terraform version'
-        required: false
-        type: string
-        default: '1.15.9'
       fail_on_diff:
-        description: 'Fail when the plan is not empty, for scheduled drift detection'
+        description: 'Fail when the plan is not empty'
         required: false
         type: boolean
         default: false
     secrets:
       aws_access_key_id:
-        description: 'Every module needs AWS credentials for the S3 state backend, not just aws/'
         required: true
       aws_secret_access_key:
         required: true
@@ -32,8 +26,11 @@ on:
       repo_admin_token:
         required: false
       tf_vars:
-        description: 'tfvars content written to ci.auto.tfvars before planning'
         required: false
+
+env:
+  # renovate: datasource=github-releases depName=hashicorp/terraform extractVersion=^v(?<version>.+)$
+  TERRAFORM_VERSION: '1.15.9'
 
 jobs:
   validate:
@@ -61,7 +58,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
         with:
-          terraform_version: ${{ inputs.terraform_version }}
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
 
       - name: Terraform fmt

@@ -1,4 +1,16 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>maxmorhardt/workflows//renovate/default.json"]
+  "extends": ["github>maxmorhardt/workflows//renovate/default.json"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "track versions pinned in workflow env blocks",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: extractVersion=(?<extractVersion>\\S+))?\\s+\\w+: '(?<currentValue>[^']+)'"
+      ]
+    }
+  ]
 }
