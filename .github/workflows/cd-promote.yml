@@ -66,7 +66,7 @@ jobs:
           SOURCE_TAG: ${{ inputs.source_tag }}
           TARGET_TAG: ${{ inputs.target_tag }}
         run: |
-          docker buildx imagetools create -t "$IMAGE:$TARGET_TAG" -t "$IMAGE:latest" "$IMAGE:$SOURCE_TAG"
+          docker buildx imagetools create -t "$IMAGE:$TARGET_TAG" -t "$IMAGE:stable" "$IMAGE:$SOURCE_TAG"
           echo "digest=$(docker buildx imagetools inspect "$IMAGE:$TARGET_TAG" --format '{{json .Manifest.Digest}}' | tr -d '"')" >> "$GITHUB_OUTPUT"
 
       - name: Report promotion
@@ -79,7 +79,7 @@ jobs:
           {
             echo "### Image promoted"
             echo ""
-            echo "\`$IMAGE:$SOURCE_TAG\` → \`$IMAGE:$TARGET_TAG\`, \`latest\`"
+            echo "\`$IMAGE:$SOURCE_TAG\` → \`$IMAGE:$TARGET_TAG\`, \`stable\`"
             echo ""
             echo "**Digest:** \`$DIGEST\`"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -77,7 +77,7 @@ jobs:
 
 - **Go CI** (`ci-go.yml`) – `go vet`, golangci-lint, optional swagger check, unit + integration tests with the coverage gate (race enabled), Trivy filesystem scan, and optional cross-compiled (`amd64`/`arm64`) binary build. Go version from the module's `go.mod`. `working_directory` and `binary_name` let it run against a module inside a monorepo.
 - **Node CI** (`ci-node.yml`) – pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, and Trivy filesystem scan. Node 24. `working_directory` points it at an app inside a monorepo.
-- **Docker CI** (`ci-docker.yml`) – Buildx image build, Trivy image scan (fails on HIGH/CRITICAL), and optional multi-arch (`amd64`/`arm64`) push to Docker Hub with provenance and SBOM (`latest` is left to `cd-promote`). Optionally consumes a prebuilt binary artifact. `context`, `dockerfile`, and `build_args` support monorepos and one Dockerfile building several images.
+- **Docker CI** (`ci-docker.yml`) – Buildx image build, Trivy image scan (fails on HIGH/CRITICAL), and optional multi-arch (`amd64`/`arm64`) push to Docker Hub as the given version and `latest`, with provenance and SBOM. Optionally consumes a prebuilt binary artifact. `context`, `dockerfile`, and `build_args` support monorepos and one Dockerfile building several images.
 - **Helm CI** (`ci-helm.yml`) – validates (via Helm Validate), packages the chart (optionally as a given `version`), and optionally pushes it as an OCI artifact to `ghcr.io/<owner>/charts`.
 
 ### Validation
@@ -94,5 +94,5 @@ jobs:
 ### Deployment
 
 - **Argo CD** (`cd-argocd.yml`) – GitOps deploy: bumps `image.tag` and/or the chart `targetRevision` in `clusters/<environment>/apps/<app>.yaml` in the gitops repo, commits, and pushes (rebase-and-retry on conflict). `environment: prod` runs in the `production` environment, so it waits for approval; `dev` runs in `development`. Argo CD applies the change to the cluster.
-- **Promote image** (`cd-promote.yml`) – waits for an image tag already built and tested (e.g. dev's `sha-<commit>`), then retags that exact multi-arch manifest as the release version and `latest` without rebuilding, so prod runs the bytes dev ran and `latest` is always what prod runs.
+- **Promote image** (`cd-promote.yml`) – waits for an image tag already built and tested (e.g. dev's `sha-<commit>`), then retags that exact multi-arch manifest as the release version and `stable` without rebuilding, so prod runs the bytes dev ran and `stable` is always what prod runs.
 - **Terraform Apply** (`cd-terraform.yml`) – plans one root module (`working_directory`) to a file and applies that exact file, so the apply cannot recompute into a different change than the one planned. The diff is reviewed on the pull request, not at apply time. Runs in the `production` environment.

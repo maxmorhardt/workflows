@@ -32,10 +32,10 @@ on:
         type: boolean
         default: false
       latest:
-        description: 'Deprecated, removed next: latest moves only when cd-promote promotes a release'
+        description: 'Ignored and removed next: a push always tags latest'
         required: false
         type: boolean
-        default: false
+        default: true
       context:
         description: 'Docker build context, for apps inside a monorepo'
         required: false
@@ -123,7 +123,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-            ${{ inputs.latest && format('{0}/{1}:latest', secrets.docker_username, inputs.app_name) || '' }}
+            ${{ secrets.docker_username }}/${{ inputs.app_name }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: true
@@ -133,7 +133,7 @@ jobs:
         if: ${{ inputs.push }}
         env:
           IMAGE: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-          LATEST_IMAGE: ${{ inputs.latest && format('{0}/{1}:latest', secrets.docker_username, inputs.app_name) || '' }}
+          LATEST_IMAGE: ${{ secrets.docker_username }}/${{ inputs.app_name }}:latest
           DIGEST: ${{ steps.push.outputs.digest }}
         run: |
           {
@@ -147,5 +147,5 @@ jobs:
             echo ""
             echo "**Tags:**"
             echo "- \`$IMAGE\`"
-            if [ -n "$LATEST_IMAGE" ]; then echo "- \`$LATEST_IMAGE\`"; fi
+            echo "- \`$LATEST_IMAGE\`"
           } >> "$GITHUB_STEP_SUMMARY"
