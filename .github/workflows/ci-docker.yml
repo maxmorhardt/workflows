@@ -86,61 +86,54 @@ jobs:
           username: ${{ secrets.docker_username }}
           password: ${{ secrets.docker_password }}
 
-      - name: Build for scan
-        uses: docker/build-push-action@v7
-        env:
-          DOCKER_BUILD_SUMMARY: false
-          DOCKER_BUILD_RECORD_UPLOAD: false
-        with:
-          context: ${{ inputs.context }}
-          file: ${{ inputs.dockerfile }}
-          build-args: ${{ inputs.build_args }}
-          load: true
-          tags: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-
-      - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-          format: 'table'
-          exit-code: '1'
-          severity: 'HIGH,CRITICAL'
-
-      - name: Build and push
-        if: ${{ inputs.push }}
-        id: push
+      - name: Build
         uses: docker/build-push-action@v7
         with:
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
           build-args: ${{ inputs.build_args }}
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-            ${{ secrets.docker_username }}/${{ inputs.app_name }}:latest
+          platforms: ${{ inputs.push && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
+          outputs: type=oci,dest=${{ runner.temp }}/image.tar
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: true
           sbom: true
 
-      - name: Report image details
+      - name: Scan linux/amd64
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_PLATFORM: linux/amd64
+        with:
+          input: ${{ runner.temp }}/image.tar
+          format: 'table'
+          exit-code: '1'
+          severity: 'HIGH,CRITICAL'
+
+      - name: Scan linux/arm64
+        if: ${{ inputs.push }}
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_PLATFORM: linux/arm64
+        with:
+          input: ${{ runner.temp }}/image.tar
+          format: 'table'
+          exit-code: '1'
+          severity: 'HIGH,CRITICAL'
+
+      - name: Push the scanned image
         if: ${{ inputs.push }}
         env:
-          IMAGE: ${{ secrets.docker_username }}/${{ inputs.app_name }}:${{ inputs.app_version }}
-          LATEST_IMAGE: ${{ secrets.docker_username }}/${{ inputs.app_name }}:latest
-          DIGEST: ${{ steps.push.outputs.digest }}
+          ARCHIVE: ${{ runner.temp }}/image.tar
+          IMAGE: docker.io/${{ secrets.docker_username }}/${{ inputs.app_name }}
+          VERSION: ${{ inputs.app_version }}
         run: |
+          skopeo copy --all "oci-archive:$ARCHIVE" "docker://$IMAGE:$VERSION"
+          docker buildx imagetools create -t "$IMAGE:latest" "$IMAGE:$VERSION"
+          digest=$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{json .Manifest.Digest}}' | tr -d '"')
           {
-            echo "### Docker Image Published"
+            echo "### Docker image published"
             echo ""
-            echo "**Image Digest:** \`$DIGEST\`"
+            echo "**Digest:** \`$digest\`"
             echo ""
-            SIZE=$(docker image inspect "$IMAGE" --format='{{.Size}}')
-            SIZE_MB=$((SIZE / 1024 / 1024))
-            echo "**Image Size:** ${SIZE_MB}MB"
-            echo ""
-            echo "**Tags:**"
-            echo "- \`$IMAGE\`"
-            echo "- \`$LATEST_IMAGE\`"
+            echo "**Tags:** \`$IMAGE:$VERSION\`, \`$IMAGE:latest\`"
           } >> "$GITHUB_STEP_SUMMARY"

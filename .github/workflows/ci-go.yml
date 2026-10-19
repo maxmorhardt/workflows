@@ -7,11 +7,6 @@ on:
         description: 'Repository to checkout'
         required: true
         type: string
-      swagger:
-        description: 'Verify swagger docs are up to date'
-        required: false
-        type: boolean
-        default: false
       working_directory:
         description: 'Root module directory to run in'
         required: false
@@ -54,8 +49,12 @@ jobs:
           working-directory: ${{ inputs.working_directory }}
 
       - name: Check swagger docs are up to date
-        if: ${{ inputs.swagger }}
-        run: make swag-check
+        run: |
+          if make -n swag-check >/dev/null 2>&1; then
+            make swag-check
+          else
+            echo "no swag-check target, skipping"
+          fi
 
       - name: Run unit tests and coverage gate
         run: make cover RACE=-race
