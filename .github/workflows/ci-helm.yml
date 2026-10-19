@@ -8,16 +8,11 @@ on:
         required: true
         type: string
       chart:
-        description: 'Chart directory, relative to working_directory'
+        description: 'Path to the chart directory'
         required: true
         type: string
-      working_directory:
-        description: 'Working directory to run from'
-        required: false
-        type: string
-        default: '.'
       version:
-        description: 'Chart version to publish, overriding Chart.yaml'
+        description: 'Chart version to publish'
         required: false
         type: string
         default: ''
@@ -28,7 +23,6 @@ jobs:
     with:
       repository: ${{ inputs.repository }}
       chart: ${{ inputs.chart }}
-      working_directory: ${{ inputs.working_directory }}
       lint: true
       set_values: image.tag=0.0.0-validate
 
@@ -40,9 +34,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    defaults:
-      run:
-        working-directory: ${{ inputs.working_directory }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

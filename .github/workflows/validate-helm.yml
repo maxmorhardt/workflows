@@ -27,12 +27,12 @@ on:
         type: string
         default: ''
       values_files:
-        description: 'Newline-separated values files to render with, in order'
+        description: 'Newline-separated values files to render with'
         required: false
         type: string
         default: ''
       set_values:
-        description: 'Comma-separated key=value pairs passed with --set, for values a chart requires'
+        description: 'Comma-separated key=value pairs passed with --set'
         required: false
         type: string
         default: ''
@@ -46,11 +46,6 @@ on:
         required: false
         type: string
         default: 'validate'
-      working_directory:
-        description: 'Working directory for helm commands'
-        required: false
-        type: string
-        default: '.'
 
 jobs:
   validate:
@@ -87,14 +82,12 @@ jobs:
 
       - name: Lint Helm chart
         if: ${{ inputs.lint }}
-        working-directory: ${{ inputs.working_directory }}
         env:
           CHART: ${{ inputs.chart }}
         run: |
           helm lint "$CHART" --strict
 
       - name: Template and validate
-        working-directory: ${{ inputs.working_directory }}
         env:
           RELEASE_NAME: ${{ inputs.release_name }}
           CHART: ${{ inputs.chart }}
@@ -115,7 +108,6 @@ jobs:
             template_cmd+=(--set "$SET_VALUES")
           fi
 
-          # CRDs have no published schema; every resource that uses them is still validated
           kubeconform_cmd=(kubeconform -strict -summary -skip CustomResourceDefinition
             -schema-location default
             -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json')
