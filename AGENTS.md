@@ -24,7 +24,7 @@
   - `release-please.yml` - maintains release PRs and tags from conventional commits.
   - `pr-title.yml` - enforces a semantic PR title.
   - `cd-promote.yml` - retags an already-pushed image (dev's `sha-<commit>`) as a release version without rebuilding, waiting for the source tag if dev's build is still running.
-  - `cd-argocd.yml` - GitOps deploy. Bumps `image.tag` and/or the chart `targetRevision` in `clusters/<environment>/apps/<app>.yaml` in `maxmorhardt/gitops`, commits, pushes with rebase-and-retry. Prod deploys wait on the `production` environment's approval.
+  - `cd-argocd.yml` - GitOps deploy. Bumps `image.tag` and/or the chart version (`targetRevision`, an OCI chart version) in `clusters/<environment>/apps/<app>.yaml` in `maxmorhardt/gitops`, commits, pushes with rebase-and-retry. Prod deploys wait on the `production` environment's approval.
 - `renovate/default.json` - the shared Renovate preset every repo extends via a two-line `renovate.json`.
 - `renovate/README.md` - what the preset does and the one-time GitHub App setup.
 

@@ -16,11 +16,6 @@ on:
         required: false
         type: string
         default: '1.15.9'
-      aws_region:
-        description: 'Region holding the S3 state backend'
-        required: false
-        type: string
-        default: 'us-east-1'
     secrets:
       aws_access_key_id:
         description: 'Every module needs AWS credentials for the S3 state backend, not just aws/'
@@ -57,7 +52,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.aws_access_key_id }}
           aws-secret-access-key: ${{ secrets.aws_secret_access_key }}
-          aws-region: ${{ inputs.aws_region }}
+          aws-region: us-east-1
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4

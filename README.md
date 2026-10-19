@@ -14,7 +14,7 @@ Reusable GitHub Actions workflows for CI/CD.
 
 This repository contains reusable GitHub Actions workflows that can be called from other repositories to standardize CI/CD. They cover building and scanning Docker images, testing Go and Node apps, packaging Helm charts, validating manifests, cutting releases, and deploying.
 
-Deployment is GitOps via **Argo CD**: workflows here don't apply anything to a cluster directly. The `cd-argocd` workflow bumps an image tag or chart revision for one cluster (`dev` or `prod`) in the gitops repo (`maxmorhardt/gitops`) and Argo CD reconciles it; prod waits for approval on the `production` environment. There is no `kubectl`/`helm upgrade` step, no cluster credentials, and no Tailscale in this repo.
+Deployment is GitOps via **Argo CD**: workflows here don't apply anything to a cluster directly. The `cd-argocd` workflow bumps an image tag or chart version for one cluster (`dev` or `prod`) in the gitops repo (`maxmorhardt/gitops`) and Argo CD reconciles it; prod waits for approval on the `production` environment. There is no `kubectl`/`helm upgrade` step, no cluster credentials, and no Tailscale in this repo.
 
 ## Setup
 
@@ -65,8 +65,8 @@ jobs:
     with:
       app: my-app
       environment: prod
-      image_tag: ${{ github.ref_name }}
-      revision: ${{ github.ref_name }}
+      image_tag: 1.4.0
+      chart_version: 1.4.0
     secrets:
       gitops_token: ${{ secrets.GITOPS_TOKEN }}
 ```

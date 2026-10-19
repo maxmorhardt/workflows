@@ -17,8 +17,13 @@ on:
         required: false
         type: string
         default: ''
+      chart_version:
+        description: 'Chart version to deploy, from the OCI repository the Application points at'
+        required: false
+        type: string
+        default: ''
       revision:
-        description: 'Chart revision: a git ref for charts read from git, or the chart version for OCI charts'
+        description: 'Old name for chart_version, removed next'
         required: false
         type: string
         default: ''
@@ -47,14 +52,14 @@ jobs:
           APP: ${{ inputs.app }}
           ENVIRONMENT: ${{ inputs.environment }}
           IMAGE_TAG: ${{ inputs.image_tag }}
-          REVISION: ${{ inputs.revision }}
+          CHART_VERSION: ${{ inputs.chart_version || inputs.revision }}
         run: |
           case "$ENVIRONMENT" in
             dev|prod) ;;
             *) echo "environment must be dev or prod, got '$ENVIRONMENT'"; exit 1 ;;
           esac
-          if [ -z "$IMAGE_TAG" ] && [ -z "$REVISION" ]; then
-            echo "nothing to do: pass image_tag, revision, or both"
+          if [ -z "$IMAGE_TAG" ] && [ -z "$CHART_VERSION" ]; then
+            echo "nothing to do: pass image_tag, chart_version, or both"
             exit 1
           fi
 
@@ -79,11 +84,11 @@ jobs:
             changes+=("$IMAGE_TAG")
           fi
 
-          if [ -n "$REVISION" ]; then
+          if [ -n "$CHART_VERSION" ]; then
             previous=$(yq '.spec.source.targetRevision' "$file")
-            REVISION="$REVISION" yq -i '.spec.source.targetRevision = strenv(REVISION)' "$file"
-            echo "targetRevision: $previous -> $REVISION"
-            changes+=("chart $REVISION")
+            CHART_VERSION="$CHART_VERSION" yq -i '.spec.source.targetRevision = strenv(CHART_VERSION)' "$file"
+            echo "chart: $previous -> $CHART_VERSION"
+            changes+=("chart $CHART_VERSION")
           fi
 
           echo "summary=${changes[*]}" >> "$GITHUB_OUTPUT"
