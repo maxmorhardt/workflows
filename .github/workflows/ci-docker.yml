@@ -92,7 +92,7 @@ jobs:
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
           build-args: ${{ inputs.build_args }}
-          platforms: ${{ inputs.push && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
+          platforms: linux/amd64,linux/arm64
           outputs: type=oci,tar=false,dest=${{ runner.temp }}/image
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -110,7 +110,6 @@ jobs:
           severity: 'HIGH,CRITICAL'
 
       - name: Scan linux/arm64
-        if: ${{ inputs.push }}
         uses: aquasecurity/trivy-action@v0.36.0
         env:
           TRIVY_PLATFORM: linux/arm64
