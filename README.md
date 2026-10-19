@@ -14,7 +14,7 @@ Reusable GitHub Actions workflows for CI/CD.
 
 This repository contains reusable GitHub Actions workflows that can be called from other repositories to standardize CI/CD. They cover building and scanning Docker images, testing Go and Node apps, packaging Helm charts, validating manifests, cutting releases, and deploying.
 
-Deployment is GitOps via **Argo CD**: workflows here don't apply anything to a cluster directly. The `cd-argocd` workflow bumps an image tag or chart version in the gitops repo (`maxmorhardt/infra`) and Argo CD reconciles it. There is no `kubectl`/`helm upgrade` step, no cluster credentials, and no Tailscale in this repo.
+Deployment is GitOps via **Argo CD**: workflows here don't apply anything to a cluster directly. The `cd-argocd` workflow bumps an image tag or chart revision for one cluster (`dev` or `prod`) in the gitops repo (`maxmorhardt/gitops`) and Argo CD reconciles it; prod waits for approval on the `production` environment. There is no `kubectl`/`helm upgrade` step, no cluster credentials, and no Tailscale in this repo.
 
 ## Setup
 
@@ -64,7 +64,9 @@ jobs:
     uses: maxmorhardt/workflows/.github/workflows/cd-argocd.yml@main
     with:
       app: my-app
+      environment: prod
       image_tag: ${{ github.ref_name }}
+      revision: ${{ github.ref_name }}
     secrets:
       gitops_token: ${{ secrets.GITOPS_TOKEN }}
 ```
@@ -91,5 +93,5 @@ jobs:
 
 ### Deployment
 
-- **Argo CD** (`cd-argocd.yml`) – GitOps deploy: bumps `image.tag` and/or the chart `targetRevision` in the Application manifest in the gitops repo, commits, and pushes (rebase-and-retry on conflict). Argo CD applies the change to the cluster.
+- **Argo CD** (`cd-argocd.yml`) – GitOps deploy: bumps `image.tag` and/or the chart `targetRevision` in `clusters/<environment>/apps/<app>.yaml` in the gitops repo, commits, and pushes (rebase-and-retry on conflict). `environment: prod` runs in the `production` environment, so it waits for approval; `dev` runs in `development`. Argo CD applies the change to the cluster.
 - **Terraform Apply** (`cd-terraform.yml`) – plans one root module (`working_directory`) to a file and applies that exact file, so the apply cannot recompute into a different change than the one planned. The diff is reviewed on the pull request, not at apply time. Runs in the `production` environment.
