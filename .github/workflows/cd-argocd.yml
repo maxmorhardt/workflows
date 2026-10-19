@@ -22,11 +22,6 @@ on:
         required: false
         type: string
         default: ''
-      gitops_repository:
-        description: 'Repository holding the Application manifests'
-        required: false
-        type: string
-        default: 'maxmorhardt/gitops'
     secrets:
       gitops_token:
         required: true
@@ -43,7 +38,7 @@ jobs:
       - name: Checkout gitops repository
         uses: actions/checkout@v7
         with:
-          repository: ${{ inputs.gitops_repository }}
+          repository: ${{ github.repository_owner }}/gitops
           token: ${{ secrets.gitops_token }}
 
       - name: Bump Application
