@@ -8,17 +8,17 @@ on:
         required: true
         type: string
       environment:
-        description: 'Cluster to deploy to: dev or prod (prod waits for approval)'
+        description: 'Cluster to deploy to: dev or prod'
         required: false
         type: string
         default: prod
       image_tag:
-        description: 'Image tag to deploy (blank to leave unchanged)'
+        description: 'Image tag to deploy'
         required: false
         type: string
         default: ''
       revision:
-        description: 'Git ref the Application takes its chart from (blank to leave unchanged)'
+        description: 'Git ref the Application takes its chart from'
         required: false
         type: string
         default: ''
