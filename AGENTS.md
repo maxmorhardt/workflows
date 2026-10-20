@@ -13,7 +13,7 @@
 ## Repository Layout
 
 - `.github/workflows/` - the reusable workflows (`on: workflow_call`), plus `ci.yml`, this repo's own PR check: actionlint (with shellcheck on every `run:`) and the Renovate config validator.
-  - `ci-go.yml` - `go vet`, golangci-lint, the swagger check when the Makefile has `swag-check`, unit and integration tests with the coverage gate (race on), Trivy filesystem scan. Go version from the nearest `go.mod` at or above `working_directory`. No binary build: Dockerfiles compile Go in a multi-stage build.
+  - `ci-go.yml` - `go vet`, golangci-lint, the swagger check when the Makefile has `swag-check`, unit and integration tests with the coverage gate (race on), Trivy filesystem scan. Go version from `module_directory` (default `working_directory`)'s `go.mod`. No binary build: Dockerfiles compile Go in a multi-stage build.
   - `ci-node.yml` - pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, Trivy filesystem scan. Node 24.
   - `ci-docker.yml` - hadolint on the Dockerfile, then one Buildx build to an OCI image layout (provenance, SBOM), Trivy scan of each platform in it failing on HIGH and CRITICAL, then a push of those exact bytes with `latest`.
   - `ci-helm.yml` - validates, then packages and pushes a chart to `oci://ghcr.io/<owner>/charts`, named and versioned from `Chart.yaml` unless `version` overrides it.
@@ -51,7 +51,7 @@
 - Reference third-party actions by version tag (`actions/checkout@v7`); Renovate pins them to commit SHAs (`helpers:pinGitHubActionDigests`) and keeps the SHAs current. `maxmorhardt/workflows` stays on `@main`, so a push there is the release.
 - Current secrets: `docker_username` and `docker_password` (Docker CI push), `release_please_token` (release-please), `gitops_token` (Argo CD deploy), and `aws_access_key_id` / `aws_secret_access_key` / `cloudflare_api_token` / `repo_admin_token` / `tf_vars` (Terraform). Helm CI and PR Title use the built-in `GITHUB_TOKEN`.
 - The Terraform workflows need AWS credentials for every module, not just `aws/`, because all state lives in the same S3 backend.
-- Bumping Node 24 is a fleet-wide change. Check that consumers' `package.json` engines agree first. Go follows the nearest `go.mod`, which Renovate bumps together with the `golang` base image. Terraform, Node, and actionlint versions are pinned once in their workflows with a `# renovate:` comment that this repo's `renovate.json` tracks.
+- Bumping Node 24 is a fleet-wide change. Check that consumers' `package.json` engines agree first. Go follows the module's `go.mod`, which Renovate bumps together with the `golang` base image. Terraform, Node, and actionlint versions are pinned once in their workflows with a `# renovate:` comment that this repo's `renovate.json` tracks.
 - Renovate policy changes go in `renovate/default.json`. Per-repo exceptions belong in that repo's `renovate.json` as a `packageRules` entry. Never special-case a single repo in the shared preset.
 - Keep `README.md` in sync. It documents each workflow's inputs and is what people read before wiring one up.
 
