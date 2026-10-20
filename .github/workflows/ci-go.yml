@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: '.'
+      module_directory:
+        description: 'Directory holding go.mod, when it is not working_directory'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   ci:
@@ -32,9 +37,9 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version-file: ${{ inputs.working_directory }}/go.mod
+          go-version-file: ${{ inputs.module_directory || inputs.working_directory }}/go.mod
           cache: true
-          cache-dependency-path: ${{ inputs.working_directory }}/go.sum
+          cache-dependency-path: ${{ inputs.module_directory || inputs.working_directory }}/go.sum
 
       - name: Verify dependencies
         run: make verify

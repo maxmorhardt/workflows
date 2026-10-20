@@ -5,10 +5,11 @@ Shared dependency-update preset for every maxmorhardt repo. Each repo has a two-
 ## What it does
 
 - **Rolling batch, no schedule**: all minor/patch updates are grouped into one rolling PR per repo that updates whenever a new update is found (no fixed day/window). Majors get individual PRs.
-- **Security fixes**: vulnerability PRs (labeled `security`) open immediately as `fix(deps):` commits, so release-please cuts a patch release and the fix deploys. Routine bumps stay `chore(deps):` (no release).
+- **Releases follow what changed**: runtime dependency and base-image bumps are `fix(deps):`, so release-please cuts a patch release and they reach prod; dev dependencies and tooling are `chore(deps):` (no release). Vulnerability PRs (labeled `security`) open immediately as `fix(deps):`.
 - **Supply-chain guard**: `minimumReleaseAge: 3 days` means brand-new package releases are not picked up until they have aged.
 - **Lockfile maintenance** monthly: refreshes transitive pins.
-- **Go hygiene**: `gomodTidy` runs after every go.mod update.
+- **Go**: `gomodTidy` runs after every go.mod update, and the `go` directive is bumped and grouped with the `golang` base image in one `go` PR.
+- **Pinned actions**: third-party GitHub Actions are pinned to commit SHAs and kept current; `maxmorhardt/workflows` stays on `@main`.
 - Covers npm/pnpm, Go modules, Dockerfiles (base images), and GitHub Actions across all repos.
 - A **Dependency Dashboard** issue is created in each repo listing every pending/ignored update in one place.
 
