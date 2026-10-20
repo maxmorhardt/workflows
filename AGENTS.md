@@ -85,7 +85,7 @@ There is no local test harness. A workflow is only truly exercised when a consum
 Worth knowing because it shapes commit traffic in every repo:
 
 - Minor and patch updates batch into one rolling PR per repo as `chore(deps):`, which cuts no release.
-- Minor, patch, pin, and digest PRs merge themselves through GitHub auto-merge once the repo's required checks pass. Anything on a `0.x` version still waits for review, and a repo opts out with `"automerge": false` in its own `renovate.json`.
+- Minor, patch, pin, and digest PRs are merged by Renovate itself once the repo's required checks pass (no repo auto-merge setting needed). Anything on a `0.x` version still waits for review, and a repo opts out with `"automerge": false` in its own `renovate.json`.
 - Majors get individual PRs.
 - Vulnerability alerts open immediately as `fix(deps):`, so release-please cuts a patch release and the fix deploys.
 - `minimumReleaseAge: 3 days` guards against fresh-release supply-chain attacks, and third-party actions are pinned to commit SHAs so a moved tag can't change what runs.

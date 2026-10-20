@@ -52,7 +52,7 @@
       "matchCurrentVersion": "!/^v?0\\./",
       "automerge": true,
       "automergeType": "pr",
-      "platformAutomerge": true
+      "platformAutomerge": false
     },
     {
       "description": "base image bumps are fixes, so release-please ships them to prod",
