@@ -24,6 +24,7 @@
   - `release-please.yml` - maintains release PRs and tags from conventional commits.
   - `pr-title.yml` - enforces a semantic PR title.
   - `cd-promote.yml` - retags an already-pushed image (dev's `sha-<commit>`) as a release version without rebuilding, waiting for the source tag if dev's build is still running.
+  - `cd-verify.yml` - after a prod deploy, refreshes the Argo CD app, waits for it to be synced and healthy, then checks a public URL answers 2xx. Without an `argocd_auth_token` it warns and passes.
   - `cd-argocd.yml` - GitOps deploy. Bumps `image.tag` and/or the chart version (`targetRevision`, an OCI chart version) in `clusters/<environment>/apps/<app>.yaml` in `maxmorhardt/gitops`, commits, pushes with rebase-and-retry. Prod deploys wait on the `production` environment's approval.
 - `renovate/default.json` - the shared Renovate preset every repo extends via a two-line `renovate.json`.
 - `renovate/README.md` - what the preset does and the one-time GitHub App setup.
@@ -84,6 +85,7 @@ There is no local test harness. A workflow is only truly exercised when a consum
 Worth knowing because it shapes commit traffic in every repo:
 
 - Minor and patch updates batch into one rolling PR per repo as `chore(deps):`, which cuts no release.
+- Minor, patch, pin, and digest PRs merge themselves through GitHub auto-merge once the repo's required checks pass. Anything on a `0.x` version still waits for review, and a repo opts out with `"automerge": false` in its own `renovate.json`.
 - Majors get individual PRs.
 - Vulnerability alerts open immediately as `fix(deps):`, so release-please cuts a patch release and the fix deploys.
 - `minimumReleaseAge: 3 days` guards against fresh-release supply-chain attacks, and third-party actions are pinned to commit SHAs so a moved tag can't change what runs.

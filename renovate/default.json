@@ -42,6 +42,19 @@
       "groupName": "all non-major dependencies"
     },
     {
+      "description": "non-major, pin, and digest updates merge themselves once required checks pass; 0.x minors can break, so they wait for review",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "matchCurrentVersion": "!/^v?0\\./",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
       "description": "base image bumps are fixes, so release-please ships them to prod",
       "matchManagers": [
         "dockerfile"

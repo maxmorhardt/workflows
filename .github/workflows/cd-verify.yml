@@ -1,0 +1,78 @@
+name: Verify Deploy
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        description: 'Argo CD Application name'
+        required: true
+        type: string
+      url:
+        description: 'Public URL that must answer 2xx once the app is healthy'
+        required: false
+        type: string
+        default: ''
+      timeout_seconds:
+        description: 'How long Argo CD gets to sync the app and report it healthy'
+        required: false
+        type: number
+        default: 600
+    secrets:
+      argocd_auth_token:
+        required: false
+
+env:
+  ARGOCD_SERVER: argocd.maxhq.io
+  # renovate: datasource=github-releases depName=argoproj/argo-cd extractVersion=^v(?<version>.+)$
+  ARGOCD_VERSION: '3.5.5'
+
+jobs:
+  verify:
+    name: Verify - ${{ inputs.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Install Argo CD CLI
+        env:
+          ARGOCD_AUTH_TOKEN: ${{ secrets.argocd_auth_token }}
+        run: |
+          if [ -z "$ARGOCD_AUTH_TOKEN" ]; then
+            echo "::warning::no argocd_auth_token, so the deploy is not verified"
+            exit 0
+          fi
+          base="https://github.com/argoproj/argo-cd/releases/download/v$ARGOCD_VERSION"
+          curl -fsSL -o argocd-linux-amd64 "$base/argocd-linux-amd64"
+          curl -fsSL "$base/cli_checksums.txt" | grep ' argocd-linux-amd64$' | sha256sum -c -
+          sudo install -m 0755 argocd-linux-amd64 /usr/local/bin/argocd
+
+      - name: Wait for Argo CD
+        env:
+          APP: ${{ inputs.app }}
+          TIMEOUT: ${{ inputs.timeout_seconds }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.argocd_auth_token }}
+        run: |
+          if [ -z "$ARGOCD_AUTH_TOKEN" ]; then
+            exit 0
+          fi
+          # refresh first, or a wait could pass against the commit before this deploy
+          argocd app get "$APP" --refresh --grpc-web > /dev/null
+          argocd app wait "$APP" --sync --health --timeout "$TIMEOUT" --grpc-web
+
+      - name: Smoke test
+        if: inputs.url != ''
+        env:
+          URL: ${{ inputs.url }}
+        run: |
+          for attempt in $(seq 1 10); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$URL" || true)
+            if [ "${status:0:1}" = "2" ]; then
+              echo "$URL answered $status"
+              exit 0
+            fi
+            echo "$URL answered $status (attempt $attempt)"
+            sleep 6
+          done
+          echo "::error::$URL never answered 2xx"
+          exit 1
