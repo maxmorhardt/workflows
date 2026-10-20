@@ -15,7 +15,7 @@
 - `.github/workflows/` - the reusable workflows (`on: workflow_call`), plus `ci.yml`, this repo's own PR check: actionlint (with shellcheck on every `run:`) and the Renovate config validator.
   - `ci-go.yml` - `go vet`, golangci-lint, the swagger check when the Makefile has `swag-check`, unit and integration tests with the coverage gate (race on), Trivy filesystem scan. Go version from the nearest `go.mod` at or above `working_directory`. No binary build: Dockerfiles compile Go in a multi-stage build.
   - `ci-node.yml` - pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, Trivy filesystem scan. Node 24.
-  - `ci-docker.yml` - hadolint on the Dockerfile, then one Buildx build to an OCI archive (provenance, SBOM), Trivy scan of each platform in it failing on HIGH and CRITICAL, then a push of those exact bytes with `latest`.
+  - `ci-docker.yml` - hadolint on the Dockerfile, then one Buildx build to an OCI image layout (provenance, SBOM), Trivy scan of each platform in it failing on HIGH and CRITICAL, then a push of those exact bytes with `latest`.
   - `ci-helm.yml` - validates, then packages and pushes a chart to `oci://ghcr.io/<owner>/charts`, named and versioned from `Chart.yaml` unless `version` overrides it.
   - `validate-helm.yml` - renders a local or remote OCI chart, optional `helm lint --strict`, always strict kubeconform on the output.
   - `validate-manifests.yml` - strict kubeconform over raw manifests (files, dirs, globs) against the default and CRD schema catalogs.
@@ -31,9 +31,9 @@
 ## Core Principles
 
 1. Every change ships to every consumer immediately
-   - Treat each edit as a breaking-change review. Adding a required input, renaming an input or secret, or changing a default breaks callers silently.
-2. Backward compatibility is a contract
-   - New behavior arrives as an **optional** input with a default that preserves current behavior. Opt repos in one at a time.
+   - Treat each edit as a breaking-change review. Adding a required input, removing or renaming an input or secret, or changing a default breaks callers, and a caller passing an undeclared input fails before it runs.
+2. Few inputs, callers updated together
+   - Add an input only when callers genuinely differ; hardcode what is the same everywhere. A breaking change ships with PRs updating every caller (`maxhq`, `maxhq-private`, `gitops`), merged right after this repo's.
 3. CI never holds cluster credentials
    - No workflow here may hold a kubeconfig, cluster credentials, or Tailscale auth. If a change seems to need one, the answer is a commit to the gitops repo instead.
 4. Secrets are explicit, never ambient
@@ -51,7 +51,7 @@
 - Reference third-party actions by version tag (`actions/checkout@v7`); Renovate pins them to commit SHAs (`helpers:pinGitHubActionDigests`) and keeps the SHAs current. `maxmorhardt/workflows` stays on `@main`, so a push there is the release.
 - Current secrets: `docker_username` and `docker_password` (Docker CI push), `release_please_token` (release-please), `gitops_token` (Argo CD deploy), and `aws_access_key_id` / `aws_secret_access_key` / `cloudflare_api_token` / `repo_admin_token` / `tf_vars` (Terraform). Helm CI and PR Title use the built-in `GITHUB_TOKEN`.
 - The Terraform workflows need AWS credentials for every module, not just `aws/`, because all state lives in the same S3 backend.
-- Bumping Node 24 is a fleet-wide change. Check that consumers' `package.json` engines agree first. Go follows each module's `go.mod`, which Renovate bumps together with the `golang` base image.
+- Bumping Node 24 is a fleet-wide change. Check that consumers' `package.json` engines agree first. Go follows the nearest `go.mod`, which Renovate bumps together with the `golang` base image. Terraform, Node, and actionlint versions are pinned once in their workflows with a `# renovate:` comment that this repo's `renovate.json` tracks.
 - Renovate policy changes go in `renovate/default.json`. Per-repo exceptions belong in that repo's `renovate.json` as a `packageRules` entry. Never special-case a single repo in the shared preset.
 - Keep `README.md` in sync. It documents each workflow's inputs and is what people read before wiring one up.
 
@@ -59,8 +59,8 @@
 
 Before merging a change to any workflow:
 
-- Is every new input optional, with a default preserving current behavior?
-- Did any input, secret, or output get renamed or removed? If so, which repos break?
+- Does every caller still pass only inputs that exist? An undeclared input fails the caller before it runs.
+- Did any input, secret, or output get renamed or removed? If so, open the caller PRs in the same round.
 - Grep the sibling workspaces for callers and confirm their inputs still line up:
   ```bash
   grep -rn "workflows/.github/workflows/ci-go.yml" ../*/.github/workflows/
@@ -75,7 +75,7 @@ There is no local test harness. A workflow is only truly exercised when a consum
 
 - `ci.yml` runs actionlint and the Renovate validator on every PR; run `actionlint` locally before pushing too.
 - Test a risky change on a branch first: point one consumer repo at `@<branch>` temporarily, confirm a green run, then merge here and revert the consumer to `@main`.
-- Prefer a change that is inert unless a new input is set. That way a mistake affects nothing until someone opts in.
+- Test risky changes from a throwaway branch in a consumer repo that points at `@<branch>` before merging.
 - After merging, watch the next run in at least one consuming repo per affected language rather than assuming success.
 - For `cd-argocd.yml` changes, confirm the commit it produces in `gitops` is correct before trusting it. A bad bump reconciles straight into the cluster.
 
