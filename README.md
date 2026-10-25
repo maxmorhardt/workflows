@@ -7,12 +7,13 @@
 ![Helm](https://img.shields.io/badge/helm-0F1689?style=for-the-badge&logo=helm&logoColor=white)
 ![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=for-the-badge&logo=go&logoColor=white)
 ![Node.js](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 
 Reusable GitHub Actions workflows for CI/CD.
 
 ## Overview
 
-This repository contains reusable GitHub Actions workflows that can be called from other repositories to standardize CI/CD. They cover building and scanning Docker images, testing Go and Node apps, packaging Helm charts, validating manifests, cutting releases, and deploying.
+This repository contains reusable GitHub Actions workflows that can be called from other repositories to standardize CI/CD. They cover building and scanning Docker images, testing Go, Node, and Python apps, packaging Helm charts, validating manifests, cutting releases, and deploying.
 
 Deployment is GitOps via **Argo CD**: workflows here don't apply anything to a cluster directly. The `cd-argocd` workflow bumps an image tag or chart version for one cluster (`dev` or `prod`) in the gitops repo (`maxmorhardt/gitops`) and Argo CD reconciles it; prod waits for approval on the `production` environment.
 
@@ -74,6 +75,7 @@ jobs:
 
 - **Go CI** (`ci-go.yml`): `go vet`, golangci-lint, the swagger check when the module's Makefile has `swag-check`, unit + integration tests with the coverage gate (race enabled), and Trivy filesystem scan. Go version from `module_directory`'s `go.mod`, which defaults to `working_directory`; set it when `working_directory` is a package inside a larger module (e.g. `module_directory: .` for a root `go.mod`). Images compile Go in their own multi-stage Dockerfile, so it builds no binaries.
 - **Node CI** (`ci-node.yml`): pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, and Trivy filesystem scan. Node 24. `working_directory` points it at an app inside a monorepo.
+- **Python CI** (`ci-python.yml`): pip install from `requirements-dev.txt` (which pulls in `requirements.txt` with `-r`), ruff lint with its default rules, pytest, and Trivy filesystem scan. Python and ruff versions are pinned here. `working_directory` points it at a project inside a monorepo; pytest settings come from the project's `pyproject.toml`.
 - **Docker CI** (`ci-docker.yml`): Logs in to Docker Hub, lints the Dockerfile with hadolint, builds to OCI image layout with provenance and SBOM (`amd64` and `arm64`), Trivy-scans each platform of that build (fails on HIGH/CRITICAL), then pushes the scanned bytes to Docker Hub as the given version and `latest`. Optionally consumes a build artifact, such as a Node app's `dist/`. `context`, `dockerfile`, and `build_args` support monorepos and one Dockerfile building several images.
 - **Helm CI** (`ci-helm.yml`): validates, then packages the chart and pushes it to `oci://ghcr.io/<owner>/charts`. Name and version come from `Chart.yaml`; `version` overrides the version (e.g. `0.0.0-sha-<commit>` for dev).
 

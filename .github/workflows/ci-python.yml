@@ -1,0 +1,65 @@
+name: Python CI
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        description: 'Repository to checkout'
+        required: true
+        type: string
+      app_name:
+        description: 'Application name'
+        required: true
+        type: string
+      working_directory:
+        description: 'Working directory to run from'
+        required: false
+        type: string
+        default: '.'
+
+env:
+  # renovate: datasource=python-version depName=python
+  PYTHON_VERSION: '3.15'
+  # renovate: datasource=pypi depName=ruff
+  RUFF_VERSION: '0.17.2'
+
+jobs:
+  ci:
+    name: Python CI - ${{ inputs.app_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ${{ inputs.working_directory }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ inputs.repository }}
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: ${{ inputs.working_directory }}/requirements*.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt "ruff==${RUFF_VERSION}"
+
+      - name: Run linter
+        run: ruff check --output-format github .
+
+      - name: Run tests
+        run: pytest
+
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: ${{ inputs.working_directory }}
+          format: 'table'
+          exit-code: '1'
+          severity: 'HIGH,CRITICAL'
