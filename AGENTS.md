@@ -24,7 +24,7 @@
   - `cd-terraform.yml` - plans to a file then applies that exact file, so the apply cannot recompute into something different from what was planned. Human review of the diff happens on the pull request plan, not here.
   - `release-please.yml` - maintains release PRs and tags from conventional commits.
   - `pr-title.yml` - enforces a semantic PR title.
-  - `cd-promote.yml` - retags an already-pushed image (dev's `sha-<commit>`) as a release version without rebuilding, waiting for the source tag if dev's build is still running.
+  - `cd-promote.yml` - retags dev's `sha-<commit>` image as a release version without rebuilding, waiting for it if dev's build is still running. The commit is the last one before the released commit that changed the `path_filters` paths in the caller's `.github/path-filters.yml`.
   - `cd-argocd.yml` - GitOps deploy. Bumps `image.tag` and/or the chart version (`targetRevision`, an OCI chart version) in `clusters/<environment>/apps/<app>.yaml` in `maxmorhardt/gitops`, commits, pushes with rebase-and-retry. Prod deploys wait on the `production` environment's approval.
 - `renovate/default.json` - the shared Renovate preset every repo extends via a two-line `renovate.json`.
 - `renovate/README.md` - what the preset does and the one-time GitHub App setup.
