@@ -19,7 +19,7 @@ on:
 
 env:
   # renovate: datasource=node-version depName=node
-  NODE_VERSION: '24'
+  NODE_VERSION: '26'
 
 jobs:
   ci:
