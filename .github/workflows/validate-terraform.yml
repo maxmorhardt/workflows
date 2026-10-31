@@ -30,7 +30,7 @@ on:
 
 env:
   # renovate: datasource=github-releases depName=hashicorp/terraform extractVersion=^v(?<version>.+)$
-  TERRAFORM_VERSION: '1.17.0'
+  TERRAFORM_VERSION: '1.17.1'
 
 jobs:
   validate:
