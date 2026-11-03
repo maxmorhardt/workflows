@@ -33,6 +33,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: ${{ inputs.repository }}
+          persist-credentials: false
 
       - name: Setup Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
@@ -50,7 +51,8 @@ jobs:
       - name: Run linter
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
         with:
-          version: latest
+          # renovate: datasource=github-releases depName=golangci/golangci-lint
+          version: 'v2.15.0'
           working-directory: ${{ inputs.working_directory }}
 
       - name: Check swagger docs are up to date

@@ -77,14 +77,14 @@
       "groupName": "go"
     },
     {
-      "description": "our own reusable workflows follow main, so a push there is the release",
+      "description": "our own reusable workflows are released here, so a release ships without the supply-chain wait",
       "matchManagers": [
         "github-actions"
       ],
       "matchPackageNames": [
         "maxmorhardt/workflows"
       ],
-      "pinDigests": false
+      "minimumReleaseAge": "0 days"
     }
   ]
 }

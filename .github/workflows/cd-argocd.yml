@@ -53,6 +53,10 @@ jobs:
             dev|prod) ;;
             *) echo "environment must be dev or prod, got '$ENVIRONMENT'"; exit 1 ;;
           esac
+          if ! [[ "$APP" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+            echo "app must be lowercase letters, digits, and dashes, got '$APP'"
+            exit 1
+          fi
           if [ -z "$IMAGE_TAG" ] && [ -z "$CHART_VERSION" ]; then
             echo "nothing to do: pass image_tag, chart_version, or both"
             exit 1

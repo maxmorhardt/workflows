@@ -1,10 +1,17 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>maxmorhardt/workflows//renovate/default.json"],
+  "packageRules": [
+    {
+      "description": "callers pin a release, so every update here has to cut one",
+      "matchPackageNames": ["*"],
+      "semanticCommitType": "fix"
+    }
+  ],
   "customManagers": [
     {
       "customType": "regex",
-      "description": "track versions pinned in workflow env blocks",
+      "description": "track tool versions pinned in workflow env and with blocks",
       "managerFilePatterns": [
         "/^\\.github/workflows/[^/]+\\.ya?ml$/"
       ],

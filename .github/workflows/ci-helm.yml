@@ -18,17 +18,8 @@ on:
         default: ''
 
 jobs:
-  validate:
-    uses: maxmorhardt/workflows/.github/workflows/validate-helm.yml@main
-    with:
-      repository: ${{ inputs.repository }}
-      chart: ${{ inputs.chart }}
-      lint: true
-      set_values: image.tag=0.0.0-validate
-
   publish:
     name: Helm Publish - ${{ inputs.chart }}
-    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -39,11 +30,13 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: ${{ inputs.repository }}
+          persist-credentials: false
 
       - name: Install Helm
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5
         with:
-          version: 'latest'
+          # renovate: datasource=github-releases depName=helm/helm
+          version: 'v4.3.1'
 
       - name: Package and push
         env:
