@@ -18,17 +18,8 @@ on:
         default: ''
 
 jobs:
-  validate:
-    uses: maxmorhardt/workflows/.github/workflows/validate-helm.yml@v1.0.0 # x-release-please-version
-    with:
-      repository: ${{ inputs.repository }}
-      chart: ${{ inputs.chart }}
-      lint: true
-      set_values: image.tag=0.0.0-validate
-
   publish:
     name: Helm Publish - ${{ inputs.chart }}
-    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

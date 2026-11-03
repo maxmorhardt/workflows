@@ -3,9 +3,9 @@
   "extends": ["github>maxmorhardt/workflows//renovate/default.json"],
   "packageRules": [
     {
-      "description": "release-please moves this repo's references to itself on each release",
-      "matchPackageNames": ["maxmorhardt/workflows"],
-      "enabled": false
+      "description": "callers pin a release, so every update here has to cut one",
+      "matchPackageNames": ["*"],
+      "semanticCommitType": "fix"
     }
   ],
   "customManagers": [

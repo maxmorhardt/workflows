@@ -5,13 +5,7 @@
   "packages": {
     ".": {
       "release-type": "simple",
-      "changelog-path": "CHANGELOG.md",
-      "extra-files": [
-        {
-          "type": "generic",
-          "path": ".github/workflows/ci-helm.yml"
-        }
-      ]
+      "changelog-path": "CHANGELOG.md"
     }
   }
 }

@@ -83,7 +83,7 @@ jobs:
 - **Node CI** (`ci-node.yml`): pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, and Trivy filesystem scan. Node 26. `working_directory` points it at an app inside a monorepo.
 - **Python CI** (`ci-python.yml`): pip install from `requirements-dev.txt` (which pulls in `requirements.txt` with `-r`), ruff lint with its default rules, pytest, and Trivy filesystem scan. Python and ruff versions are pinned here. `working_directory` points it at a project inside a monorepo; pytest settings come from the project's `pyproject.toml`.
 - **Docker CI** (`ci-docker.yml`): Logs in to Docker Hub, lints the Dockerfile with hadolint, builds to OCI image layout with provenance and SBOM (`amd64` and `arm64`), Trivy-scans each platform of that build (fails on HIGH/CRITICAL), then pushes the scanned bytes to Docker Hub as the given version and `latest`. Optionally consumes a build artifact, such as a Node app's `dist/`. `context`, `dockerfile`, and `build_args` support monorepos and one Dockerfile building several images.
-- **Helm CI** (`ci-helm.yml`): validates, then packages the chart and pushes it to `oci://ghcr.io/<owner>/charts`. Name and version come from `Chart.yaml`; `version` overrides the version (e.g. `0.0.0-sha-<commit>` for dev).
+- **Helm CI** (`ci-helm.yml`): packages the chart and pushes it to `oci://ghcr.io/<owner>/charts`. Name and version come from `Chart.yaml`; `version` overrides the version (e.g. `0.0.0-sha-<commit>` for dev).
 
 ### Validation
 

@@ -18,7 +18,7 @@
   - `ci-node.yml` - pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, Trivy filesystem scan. Node 26.
   - `ci-python.yml` - pip install from `requirements-dev.txt`, ruff lint (default rules), pytest, Trivy filesystem scan. Python and ruff pinned in the workflow.
   - `ci-docker.yml` - hadolint on the Dockerfile, then one Buildx build to an OCI image layout (provenance, SBOM), Trivy scan of each platform in it failing on HIGH and CRITICAL, then a push of those exact bytes with `latest`.
-  - `ci-helm.yml` - validates, then packages and pushes a chart to `oci://ghcr.io/<owner>/charts`, named and versioned from `Chart.yaml` unless `version` overrides it.
+  - `ci-helm.yml` - packages and pushes a chart to `oci://ghcr.io/<owner>/charts`, named and versioned from `Chart.yaml` unless `version` overrides it.
   - `validate-helm.yml` - renders a local or remote OCI chart, optional `helm lint --strict`, always strict kubeconform on the output.
   - `validate-manifests.yml` - strict kubeconform over raw manifests (files, dirs, globs) against the default and CRD schema catalogs.
   - `validate-terraform.yml` - `fmt -check`, init, validate, and plan for one root module. `fail_on_diff` turns a non-empty plan into a failure, which is how scheduled drift detection works.
@@ -50,7 +50,7 @@
 - Make the smallest safe change that solves the requested problem.
 - One workflow per file, named `<kind>-<target>.yml`: `ci-` for build and test, `validate-` for check-only, `cd-` for deploy, plus the two release and PR helpers.
 - Inputs are `snake_case` (`app_name`, `chart_version`, `image_tag`, `working_directory`). Follow existing names rather than introducing synonyms.
-- Reference third-party actions by version tag (`actions/checkout@v7`); Renovate pins them to commit SHAs (`helpers:pinGitHubActionDigests`) and keeps the SHAs current. A workflow here that calls another one here (`ci-helm.yml` calls `validate-helm.yml`) names the current tag with `# x-release-please-version`, which release-please rewrites on every release (listed in `extra-files` in `release-please-config.json`); this repo's `renovate.json` leaves those refs alone.
+- Reference third-party actions by version tag (`actions/checkout@v7`); Renovate pins them to commit SHAs (`helpers:pinGitHubActionDigests`) and keeps the SHAs current. Workflows here don't call each other: a nested ref would have to name a release that doesn't exist yet. Callers validate a chart in their PR CI with `validate-helm.yml` before `ci-helm.yml` publishes it.
 - Pin every tool a workflow downloads to an exact version with a `# renovate:` comment, never `latest`, and check its checksum when the release publishes one.
 - Check out with `persist-credentials: false` unless the job pushes with git (only `cd-argocd.yml` does), so no token is left in `.git/config` for later steps.
 - Current secrets: `docker_username` and `docker_password` (Docker CI push), `release_please_token` (release-please), `gitops_token` (Argo CD deploy), and `aws_access_key_id` / `aws_secret_access_key` / `cloudflare_api_token` / `repo_admin_token` / `tf_vars` (Terraform). Helm CI and PR Title use the built-in `GITHUB_TOKEN`.
@@ -102,7 +102,7 @@ Conventional commits, enforced on PR titles by `pr-title.yml`.
 - `feat`: New workflow, or a new capability on an existing one. Cuts a minor release.
 - `fix`: Corrects a broken or unsafe workflow behavior. Cuts a patch release.
 - `!` after the type (`feat!:`): breaks callers. Cuts a major release, which Renovate opens for review instead of merging.
-- `chore`: Maintenance that does not change workflow behavior, including routine action bumps. No release.
+- `chore`: Maintenance that does not change workflow behavior. No release. Renovate's bumps here are committed as `fix(deps)` instead (this repo's `renovate.json`), so each one releases and reaches callers.
 - `ci`: Changes to this repo's own automation (`ci.yml`, `release.yml`). No release.
 - `docs`: `README.md` only. No release.
 
