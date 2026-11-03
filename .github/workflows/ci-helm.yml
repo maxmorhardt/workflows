@@ -19,7 +19,6 @@ on:
 
 jobs:
   validate:
-    # release-please moves this to each release, so a release only ever calls its own validate-helm
     uses: maxmorhardt/workflows/.github/workflows/validate-helm.yml@v1.0.0 # x-release-please-version
     with:
       repository: ${{ inputs.repository }}
