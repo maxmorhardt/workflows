@@ -1,10 +1,17 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>maxmorhardt/workflows//renovate/default.json"],
+  "packageRules": [
+    {
+      "description": "release-please moves this repo's references to itself on each release",
+      "matchPackageNames": ["maxmorhardt/workflows"],
+      "enabled": false
+    }
+  ],
   "customManagers": [
     {
       "customType": "regex",
-      "description": "track versions pinned in workflow env blocks",
+      "description": "track tool versions pinned in workflow env and with blocks",
       "managerFilePatterns": [
         "/^\\.github/workflows/[^/]+\\.ya?ml$/"
       ],

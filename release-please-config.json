@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "include-v-in-tag": true,
+  "bootstrap-sha": "06bc60cfb2a5d10eff16e208f5fd5478310cd64b",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": ".github/workflows/ci-helm.yml"
+        }
+      ]
+    }
+  }
+}

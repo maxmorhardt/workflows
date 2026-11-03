@@ -1,0 +1,16 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    uses: ./.github/workflows/release-please.yml
+    secrets:
+      release_please_token: ${{ secrets.RELEASE_PLEASE_TOKEN }}

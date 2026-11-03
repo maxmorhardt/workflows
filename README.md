@@ -30,6 +30,12 @@ Secrets are passed per workflow (see each workflow's `secrets:` block), not inhe
 
 ## Usage
 
+Releases are tagged `v<version>` by release-please. Pin one by its commit, with the version in a comment, so a moved tag can't change what runs; Renovate keeps the pin current:
+
+```yaml
+uses: maxmorhardt/workflows/.github/workflows/ci-go.yml@<commit sha> # v1.0.0
+```
+
 Reference a workflow with `uses:` and pass its inputs/secrets. Example: Go CI plus a push-and-deploy on `main`:
 
 ```yaml
@@ -41,13 +47,13 @@ on:
 
 jobs:
   ci:
-    uses: maxmorhardt/workflows/.github/workflows/ci-go.yml@main
+    uses: maxmorhardt/workflows/.github/workflows/ci-go.yml@<commit sha> # v1.0.0
     with:
       repository: ${{ github.repository }}
 
   docker:
     needs: ci
-    uses: maxmorhardt/workflows/.github/workflows/ci-docker.yml@main
+    uses: maxmorhardt/workflows/.github/workflows/ci-docker.yml@<commit sha> # v1.0.0
     with:
       repository: ${{ github.repository }}
       app_name: my-app
@@ -59,7 +65,7 @@ jobs:
 
   deploy:
     needs: docker
-    uses: maxmorhardt/workflows/.github/workflows/cd-argocd.yml@main
+    uses: maxmorhardt/workflows/.github/workflows/cd-argocd.yml@<commit sha> # v1.0.0
     with:
       app: my-app
       environment: prod
@@ -74,7 +80,7 @@ jobs:
 ### CI
 
 - **Go CI** (`ci-go.yml`): `go vet`, golangci-lint, the swagger check when the module's Makefile has `swag-check`, unit + integration tests with the coverage gate (race enabled), and Trivy filesystem scan. Go version from `module_directory`'s `go.mod`, which defaults to `working_directory`; set it when `working_directory` is a package inside a larger module (e.g. `module_directory: .` for a root `go.mod`). Images compile Go in their own multi-stage Dockerfile, so it builds no binaries.
-- **Node CI** (`ci-node.yml`): pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, and Trivy filesystem scan. Node 24. `working_directory` points it at an app inside a monorepo.
+- **Node CI** (`ci-node.yml`): pnpm install, type check, lint, `pnpm audit`, tests with coverage, build, and Trivy filesystem scan. Node 26. `working_directory` points it at an app inside a monorepo.
 - **Python CI** (`ci-python.yml`): pip install from `requirements-dev.txt` (which pulls in `requirements.txt` with `-r`), ruff lint with its default rules, pytest, and Trivy filesystem scan. Python and ruff versions are pinned here. `working_directory` points it at a project inside a monorepo; pytest settings come from the project's `pyproject.toml`.
 - **Docker CI** (`ci-docker.yml`): Logs in to Docker Hub, lints the Dockerfile with hadolint, builds to OCI image layout with provenance and SBOM (`amd64` and `arm64`), Trivy-scans each platform of that build (fails on HIGH/CRITICAL), then pushes the scanned bytes to Docker Hub as the given version and `latest`. Optionally consumes a build artifact, such as a Node app's `dist/`. `context`, `dockerfile`, and `build_args` support monorepos and one Dockerfile building several images.
 - **Helm CI** (`ci-helm.yml`): validates, then packages the chart and pushes it to `oci://ghcr.io/<owner>/charts`. Name and version come from `Chart.yaml`; `version` overrides the version (e.g. `0.0.0-sha-<commit>` for dev).

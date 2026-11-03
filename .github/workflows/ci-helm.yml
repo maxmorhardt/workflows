@@ -19,7 +19,8 @@ on:
 
 jobs:
   validate:
-    uses: maxmorhardt/workflows/.github/workflows/validate-helm.yml@main
+    # release-please moves this to each release, so a release only ever calls its own validate-helm
+    uses: maxmorhardt/workflows/.github/workflows/validate-helm.yml@v1.0.0 # x-release-please-version
     with:
       repository: ${{ inputs.repository }}
       chart: ${{ inputs.chart }}
@@ -39,11 +40,13 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: ${{ inputs.repository }}
+          persist-credentials: false
 
       - name: Install Helm
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5
         with:
-          version: 'latest'
+          # renovate: datasource=github-releases depName=helm/helm
+          version: 'v4.3.1'
 
       - name: Package and push
         env:
