@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2](https://github.com/maxmorhardt/workflows/compare/v1.0.1...v1.0.2) (2026-11-15)
+
+
+### Bug Fixes
+
+* **deps:** update azure/setup-helm digest to 2f5e7bc ([#59](https://github.com/maxmorhardt/workflows/issues/59)) ([aef083f](https://github.com/maxmorhardt/workflows/commit/aef083f3bffed7ae200760f8b88997f344a5b000))
+* **deps:** update dependency hashicorp/terraform to v1.17.2 ([#60](https://github.com/maxmorhardt/workflows/issues/60)) ([d90c01d](https://github.com/maxmorhardt/workflows/commit/d90c01d68ae72e6e78a9e5503c94a56f679be7ee))
+
 ## [1.0.1](https://github.com/maxmorhardt/workflows/compare/v1.0.0...v1.0.1) (2026-11-10)
 
 
