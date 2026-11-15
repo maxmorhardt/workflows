@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/maxmorhardt/workflows/compare/v1.0.2...v1.0.3) (2026-11-15)
+
+
+### Bug Fixes
+
+* **deps:** update dependency ruff to v0.17.5 ([#62](https://github.com/maxmorhardt/workflows/issues/62)) ([e905f2b](https://github.com/maxmorhardt/workflows/commit/e905f2b117a9041eb8923b1f0755bdefad619739))
+
 ## [1.0.2](https://github.com/maxmorhardt/workflows/compare/v1.0.1...v1.0.2) (2026-11-15)
 
 
