@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/maxmorhardt/workflows/compare/v1.0.3...v1.0.4) (2026-11-16)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies to v4.3.2 ([#64](https://github.com/maxmorhardt/workflows/issues/64)) ([c517a0f](https://github.com/maxmorhardt/workflows/commit/c517a0f8bcdf2089bf36a16b48525167dc58fb1c))
+
 ## [1.0.3](https://github.com/maxmorhardt/workflows/compare/v1.0.2...v1.0.3) (2026-11-15)
 
 
