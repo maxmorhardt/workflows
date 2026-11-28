@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.5](https://github.com/maxmorhardt/workflows/compare/v1.0.4...v1.0.5) (2026-11-28)
+
+
+### Bug Fixes
+
+* **deps:** update actions/setup-go digest to d8cbb80 ([#66](https://github.com/maxmorhardt/workflows/issues/66)) ([79a954d](https://github.com/maxmorhardt/workflows/commit/79a954d243761537389b674b95bc166d1c487ebb))
+* **deps:** update amannn/action-semantic-pull-request digest to 66e7292 ([#68](https://github.com/maxmorhardt/workflows/issues/68)) ([10007b6](https://github.com/maxmorhardt/workflows/commit/10007b64901fdd17b64cb20c31a645afeb95f590))
+* **deps:** update dependency ruff to v0.17.6 ([#67](https://github.com/maxmorhardt/workflows/issues/67)) ([8cd1d1d](https://github.com/maxmorhardt/workflows/commit/8cd1d1d4cbf86c25d240452c60c022f36b6b73e9))
+
 ## [1.0.4](https://github.com/maxmorhardt/workflows/compare/v1.0.3...v1.0.4) (2026-11-16)
 
 
